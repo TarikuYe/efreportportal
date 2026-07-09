@@ -97,6 +97,7 @@ export async function POST(request: Request) {
     const fullName = String(body.full_name ?? '').trim()
     const email = String(body.email ?? '').trim().toLowerCase()
     const department = String(body.department ?? '').trim()
+    const role = String(body.role ?? '').trim() || 'engineer'
 
     if (!fullName || !email) {
       return NextResponse.json({ error: 'Full name and email are required.' }, { status: 400 })
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
         full_name: fullName,
         email,
         department: department || 'Procurement and Contract Administration',
-        role: 'engineer',
+        role: role,
       })
       .select()
       .single()
@@ -204,11 +205,7 @@ export async function PATCH(request: Request) {
       updates.department = body.department.trim() || null
     }
     if (typeof body.role === 'string') {
-      const validRoles = ['engineer', 'admin', 'dgm']
-      if (!validRoles.includes(body.role)) {
-        return NextResponse.json({ error: 'Invalid role.' }, { status: 400 })
-      }
-      updates.role = body.role
+      updates.role = body.role.trim() || 'engineer'
     }
 
     if (Object.keys(updates).length === 0) {

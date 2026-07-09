@@ -74,6 +74,7 @@ export function EmployeeManager() {
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newDept, setNewDept] = useState('')
+  const [newRole, setNewRole] = useState('')
   const [adding, setAdding] = useState(false)
 
   // ── One-time password modal ──
@@ -103,7 +104,7 @@ export function EmployeeManager() {
       const res = await fetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: newName, email: newEmail, department: newDept }),
+        body: JSON.stringify({ full_name: newName, email: newEmail, department: newDept, role: newRole }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Failed to create employee.')
@@ -111,6 +112,7 @@ export function EmployeeManager() {
       setNewName('')
       setNewEmail('')
       setNewDept('')
+      setNewRole('')
       setShowAdd(false)
       mutate()
     } catch (err) {
@@ -300,6 +302,16 @@ export function EmployeeManager() {
                   className="w-44"
                 />
               </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Role</label>
+                <Input
+                  id="new-emp-role"
+                  placeholder="e.g. Engineer"
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="w-44"
+                />
+              </div>
               <Button type="submit" disabled={adding} className="shrink-0">
                 {adding ? (
                   <><Loader2 className="size-4 animate-spin" /> Creating…</>
@@ -406,16 +418,13 @@ export function EmployeeManager() {
                           {/* Role */}
                           <TableCell>
                             {editingId === emp.id ? (
-                              <select
+                              <Input
                                 id={`edit-role-${emp.id}`}
                                 value={editRole}
                                 onChange={(e) => setEditRole(e.target.value)}
-                                className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                              >
-                                <option value="engineer">Engineer</option>
-                                <option value="admin">Admin</option>
-                                <option value="dgm">DGM</option>
-                              </select>
+                                className="h-8 text-sm w-32"
+                                placeholder="Role"
+                              />
                             ) : (
                               <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${roleBadgeClass}`}>
                                 {emp.role}

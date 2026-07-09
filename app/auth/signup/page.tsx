@@ -20,6 +20,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [department, setDepartment] = useState('')
+  const [role, setRole] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,7 +38,8 @@ export default function SignUpPage() {
           email: email.trim().toLowerCase(), 
           password,
           full_name: fullName.trim(),
-          department: department.trim() || null
+          department: department.trim() || null,
+          role: role.trim() || null
         }),
       })
 
@@ -132,6 +134,18 @@ export default function SignUpPage() {
                     placeholder="e.g. Architecture, Engineering"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Input
+                    id="role"
+                    type="text"
+                    placeholder="e.g. Engineer, Registrar, Manager"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
                     disabled={loading}
                   />
                 </div>

@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
-    const { email, password, full_name, department } = await request.json()
+    const { email, password, full_name, department, role } = await request.json()
 
     // Server-side domain validation (defense-in-depth)
     if (!email || typeof email !== 'string') {
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
               email: trimmedEmail,
               department: department?.trim() || null,
               active: true,
-              role: 'employee' // default role
+              role: role?.trim() || 'engineer'
             })
 
           if (employeeError) {
