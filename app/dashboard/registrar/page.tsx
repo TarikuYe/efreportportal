@@ -957,7 +957,7 @@ export default function RegistrarPage() {
                           <SelectContent>
                             {employees.map((emp: any) => (
                               <SelectItem key={emp.id} value={emp.id}>
-                                {emp.full_name} ({emp.email})
+                                {emp.full_name}
                               </SelectItem>
                             ))}
                           </SelectContent>
