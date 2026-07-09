@@ -191,7 +191,7 @@ export async function PATCH(request: Request) {
         await admin.auth.admin.updateUserById(id, { ban_duration: 'none' })
       }
       // If only toggling active state, return early
-      if (body.full_name === undefined && body.department === undefined) {
+      if (body.full_name === undefined && body.department === undefined && body.role === undefined) {
         return NextResponse.json({ employee: { id, active: body.active } })
       }
     }
@@ -202,6 +202,13 @@ export async function PATCH(request: Request) {
     }
     if (typeof body.department === 'string') {
       updates.department = body.department.trim() || null
+    }
+    if (typeof body.role === 'string') {
+      const validRoles = ['engineer', 'admin', 'dgm']
+      if (!validRoles.includes(body.role)) {
+        return NextResponse.json({ error: 'Invalid role.' }, { status: 400 })
+      }
+      updates.role = body.role
     }
 
     if (Object.keys(updates).length === 0) {

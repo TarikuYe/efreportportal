@@ -39,6 +39,7 @@ interface Employee {
   full_name: string
   email: string
   department: string | null
+  role: string
   active?: boolean   // optional – column may not exist in older DB schemas
   created_at: string
   employee_project_assignments?: Assignment[]
@@ -85,6 +86,7 @@ export function EmployeeManager() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editDept, setEditDept] = useState('')
+  const [editRole, setEditRole] = useState('')
   const [saving, setSaving] = useState(false)
 
   // ── Expanded project assignment per employee ──
@@ -126,7 +128,7 @@ export function EmployeeManager() {
       const res = await fetch('/api/employees', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, full_name: editName, department: editDept }),
+        body: JSON.stringify({ id, full_name: editName, department: editDept, role: editRole }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Update failed.')
@@ -331,6 +333,7 @@ export function EmployeeManager() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Department</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead>Assigned projects</TableHead>
                   <TableHead className="w-24 text-center">Status</TableHead>
                   <TableHead className="w-48 text-right">Actions</TableHead>
@@ -353,6 +356,13 @@ export function EmployeeManager() {
                   employees.map((emp) => {
                     const isExpanded = expandedId === emp.id
                     const assignedCodes = assignmentMap.get(emp.id) ?? new Set<string>()
+
+                    const roleBadgeClass =
+                      emp.role === 'dgm'
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                        : emp.role === 'admin'
+                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
 
                     // ⚠️ Must use React.Fragment (not <>) so we can pass a key prop
                     return (
@@ -389,6 +399,26 @@ export function EmployeeManager() {
                             ) : (
                               <span className="text-sm text-muted-foreground">
                                 {emp.department ?? '—'}
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* Role */}
+                          <TableCell>
+                            {editingId === emp.id ? (
+                              <select
+                                id={`edit-role-${emp.id}`}
+                                value={editRole}
+                                onChange={(e) => setEditRole(e.target.value)}
+                                className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                              >
+                                <option value="engineer">Engineer</option>
+                                <option value="admin">Admin</option>
+                                <option value="dgm">DGM</option>
+                              </select>
+                            ) : (
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${roleBadgeClass}`}>
+                                {emp.role}
                               </span>
                             )}
                           </TableCell>
@@ -449,12 +479,13 @@ export function EmployeeManager() {
                                 </>
                               ) : (
                                 <>
-                                  {/* Edit name/dept */}
+                                  {/* Edit name/dept/role */}
                                   <button
                                     onClick={() => {
                                       setEditingId(emp.id)
                                       setEditName(emp.full_name)
                                       setEditDept(emp.department ?? '')
+                                      setEditRole(emp.role ?? 'engineer')
                                     }}
                                     className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                                     aria-label={`Edit ${emp.full_name}`}
@@ -501,7 +532,7 @@ export function EmployeeManager() {
                         {/* ── Inline project assignment panel ── */}
                         {isExpanded && (
                           <TableRow className="bg-secondary/30">
-                            <TableCell colSpan={5} className="py-4 pl-6">
+                            <TableCell colSpan={6} className="py-4 pl-6">
                               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 Project assignments for {emp.full_name}
                               </p>
