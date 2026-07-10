@@ -132,7 +132,7 @@ export async function GET(request: Request) {
       worksheet.columns.forEach(column => {
         let maxLen = 0
         column.eachCell!({ includeEmpty: true }, cell => {
-          if (cell.row === 1 || cell.row === 2) return // ignore title and spacer rows
+          if (Number(cell.row) === 1 || Number(cell.row) === 2) return // ignore title and spacer rows
           
           let cellText = ''
           if (cell.value && typeof cell.value === 'object') {
@@ -223,7 +223,21 @@ export async function GET(request: Request) {
     ]
     applyTableHeaders(wsLogs, headersLogs)
 
-    if (!logs || logs.length === 0) {
+    // Sort daily work logs: group by employee (alphabetically by full_name), then by log_date descending
+    const sortedLogs = logs ? [...logs].sort((a, b) => {
+      const nameA = (a.employees?.full_name || '').toLowerCase()
+      const nameB = (b.employees?.full_name || '').toLowerCase()
+      if (nameA < nameB) return -1
+      if (nameA > nameB) return 1
+      
+      const dateA = a.log_date || ''
+      const dateB = b.log_date || ''
+      if (dateA < dateB) return 1
+      if (dateA > dateB) return -1
+      return 0
+    }) : []
+
+    if (sortedLogs.length === 0) {
       // Empty template fallback warning message
       wsLogs.mergeCells('A4:O4')
       const msgCell = wsLogs.getCell('A4')
@@ -244,7 +258,7 @@ export async function GET(request: Request) {
       }
     } else {
       let rowIdx = 4
-      for (const log of logs) {
+      for (const log of sortedLogs) {
         const row = wsLogs.getRow(rowIdx)
         const emp = log.employees ?? {}
         
