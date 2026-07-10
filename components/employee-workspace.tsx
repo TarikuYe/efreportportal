@@ -53,7 +53,9 @@ function getWeekRange(refDate: Date) {
     d.setDate(monday.getDate() + i)
     days.push(d)
   }
-  return { monday, sunday: days[6], days }
+  const sunday = days[6]
+  const workDays = days.filter(d => d.getDay() !== 0) // Sunday is 0, so filter it out
+  return { monday, sunday, days: workDays }
 }
 
 function formatDateString(date: Date): string {
@@ -302,6 +304,7 @@ export function EmployeeWorkspace({
     days.forEach(day => {
       const dateStr = formatDateString(day)
       const dayLogs = dbLogs.filter((l: any) => l.log_date === dateStr)
+      const isSaturday = day.getDay() === 6
 
       if (dayLogs.length > 0) {
         dayLogs.forEach((log: any) => {
@@ -316,7 +319,7 @@ export function EmployeeWorkspace({
             done_at_home: !!log.done_at_home,
             remark: log.remark || '',
             office_entrance_time: log.office_entrance_time ? log.office_entrance_time.substring(0, 5) : '08:30',
-            office_leave_time: log.office_leave_time ? log.office_leave_time.substring(0, 5) : '17:30',
+            office_leave_time: log.office_leave_time ? log.office_leave_time.substring(0, 5) : (isSaturday ? '12:30' : '17:30'),
             approval_status: log.approval_status || 'Pending',
             head_comments: log.head_comments,
           })
@@ -327,13 +330,13 @@ export function EmployeeWorkspace({
           log_date: dateStr,
           assigned_tasks: '',
           actual_work_done: '',
-          hours_worked: 8,
-          actual_working_hour: 8,
+          hours_worked: isSaturday ? 4 : 8,
+          actual_working_hour: isSaturday ? 4 : 8,
           completion_percentage: 0.80, // Default 80%
           done_at_home: false,
           remark: '',
           office_entrance_time: '08:30',
-          office_leave_time: '17:30',
+          office_leave_time: isSaturday ? '12:30' : '17:30',
           approval_status: 'Pending',
           isNew: true
         })
