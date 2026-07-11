@@ -35,7 +35,8 @@ import {
   CheckCircle,
   FileCheck,
   Award,
-  Users
+  Users,
+  FileSpreadsheet,
 } from 'lucide-react'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -400,6 +401,170 @@ export default function RegistrarPage() {
     setScoreComm('80')
     setScoreRep('80')
     setScoreAdapt('80')
+  }
+
+  // ────────────────────────────────────────────────────────
+  // CORRESPONDENCE EXPORT
+  // ────────────────────────────────────────────────────────
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExportCorrespondence = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    const toastId = toast.loading('Generating Correspondence Register…', {
+      description: 'Building your Excel workbook, please wait.',
+    })
+    try {
+      const res = await fetch('/api/registrar/export-correspondence')
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.error ?? `Server error ${res.status}`)
+      }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
+      a.href     = url
+      a.download = `EF_Correspondence_Register_${dateStr}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Export complete', {
+        id: toastId,
+        description: 'Correspondence Register downloaded successfully.',
+      })
+    } catch (err: any) {
+      toast.error('Export failed', {
+        id: toastId,
+        description: err.message ?? 'An unexpected error occurred.',
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // ────────────────────────────────────────────────────────
+  // EOT EXPORT
+  // ────────────────────────────────────────────────────────
+  const [isExportingEot, setIsExportingEot] = useState(false)
+
+  const handleExportEot = async () => {
+    if (isExportingEot) return
+    setIsExportingEot(true)
+    const toastId = toast.loading('Building EOT Tracker Master…', {
+      description: 'Generating your Excel workbook, please wait.',
+    })
+    try {
+      const res = await fetch('/api/registrar/export-eot')
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.error ?? `Server error ${res.status}`)
+      }
+      const blob    = await res.blob()
+      const url     = URL.createObjectURL(blob)
+      const a       = document.createElement('a')
+      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
+      a.href        = url
+      a.download    = `EF_EOT_Tracker_Master_${dateStr}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Export complete', {
+        id: toastId,
+        description: 'EOT Tracker Master downloaded successfully.',
+      })
+    } catch (err: any) {
+      toast.error('Export failed', {
+        id: toastId,
+        description: err.message ?? 'An unexpected error occurred.',
+      })
+    } finally {
+      setIsExportingEot(false)
+    }
+  }
+
+  // ────────────────────────────────────────────────────────
+  // PERFORMANCE EVALUATIONS EXPORT
+  // ────────────────────────────────────────────────────────
+  const [isExportingPerf, setIsExportingPerf] = useState(false)
+
+  const handleExportPerformance = async () => {
+    if (isExportingPerf) return
+    setIsExportingPerf(true)
+    const toastId = toast.loading('Compiling Performance Evaluations Log…', {
+      description: 'Building your Excel scorecard ledger, please wait.',
+    })
+    try {
+      const res = await fetch('/api/registrar/export-performance')
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.error ?? `Server error ${res.status}`)
+      }
+      const blob    = await res.blob()
+      const url     = URL.createObjectURL(blob)
+      const a       = document.createElement('a')
+      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
+      a.href        = url
+      a.download    = `EF_Performance_Evaluations_${dateStr}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Export complete', {
+        id: toastId,
+        description: 'Performance Evaluations Master Log downloaded successfully.',
+      })
+    } catch (err: any) {
+      toast.error('Export failed', {
+        id: toastId,
+        description: err.message ?? 'An unexpected error occurred.',
+      })
+    } finally {
+      setIsExportingPerf(false)
+    }
+  }
+
+  // ────────────────────────────────────────────────────────
+  // BONDS EXPORT
+  // ────────────────────────────────────────────────────────
+  const [isExportingBonds, setIsExportingBonds] = useState(false)
+
+  const handleExportBonds = async () => {
+    if (isExportingBonds) return
+    setIsExportingBonds(true)
+    const toastId = toast.loading('Compiling Bonds Master Ledger…', {
+      description: 'Building your grouped Excel workbook, please wait.',
+    })
+    try {
+      const res = await fetch('/api/registrar/export-bonds')
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.error ?? `Server error ${res.status}`)
+      }
+      const blob    = await res.blob()
+      const url     = URL.createObjectURL(blob)
+      const a       = document.createElement('a')
+      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
+      a.href        = url
+      a.download    = `EF_Contractor_Bonds_Master_${dateStr}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Export complete', {
+        id: toastId,
+        description: 'Contractor Bonds Master Ledger downloaded successfully.',
+      })
+    } catch (err: any) {
+      toast.error('Export failed', {
+        id: toastId,
+        description: err.message ?? 'An unexpected error occurred.',
+      })
+    } finally {
+      setIsExportingBonds(false)
+    }
   }
 
   // ────────────────────────────────────────────────────────
@@ -1101,12 +1266,28 @@ export default function RegistrarPage() {
                       <CardTitle className="font-display text-lg">Active Mailbox Registry</CardTitle>
                       <CardDescription>Live entries streamed from Supabase</CardDescription>
                     </div>
-                    <button
-                      onClick={() => mutateCorr()}
-                      className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                    >
-                      <RefreshCw className="size-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleExportCorrespondence}
+                        disabled={isExporting}
+                        title="Export Correspondence Log"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isExporting
+                          ? <Loader2 className="size-3.5 animate-spin" />
+                          : <FileSpreadsheet className="size-3.5" />
+                        }
+                        <span className="hidden sm:inline">
+                          {isExporting ? 'Exporting…' : 'Export Log'}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => mutateCorr()}
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                      >
+                        <RefreshCw className="size-4" />
+                      </button>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -1196,12 +1377,28 @@ export default function RegistrarPage() {
                       <CardTitle className="font-display text-lg">Active Bonds ledger</CardTitle>
                       <CardDescription>Live active performance and payment guarantees</CardDescription>
                     </div>
-                    <button
-                      onClick={() => mutateBonds()}
-                      className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                    >
-                      <RefreshCw className="size-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleExportBonds}
+                        disabled={isExportingBonds}
+                        title="Export Master Bonds Ledger"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isExportingBonds
+                          ? <Loader2 className="size-3.5 animate-spin" />
+                          : <FileSpreadsheet className="size-3.5" />
+                        }
+                        <span className="hidden sm:inline">
+                          {isExportingBonds ? 'Exporting…' : 'Export Master Bonds Ledger'}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => mutateBonds()}
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                      >
+                        <RefreshCw className="size-4" />
+                      </button>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -1284,12 +1481,28 @@ export default function RegistrarPage() {
                       <CardTitle className="font-display text-lg">EOT Extension Logs</CardTitle>
                       <CardDescription>Live approved Extension of Time metrics</CardDescription>
                     </div>
-                    <button
-                      onClick={() => mutateEot()}
-                      className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                    >
-                      <RefreshCw className="size-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleExportEot}
+                        disabled={isExportingEot}
+                        title="Export EOT Log"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isExportingEot
+                          ? <Loader2 className="size-3.5 animate-spin" />
+                          : <FileSpreadsheet className="size-3.5" />
+                        }
+                        <span className="hidden sm:inline">
+                          {isExportingEot ? 'Exporting…' : 'Export EOT Log'}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => mutateEot()}
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                      >
+                        <RefreshCw className="size-4" />
+                      </button>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -1364,12 +1577,28 @@ export default function RegistrarPage() {
                       <CardTitle className="font-display text-lg">Logged Employee Scorecards</CardTitle>
                       <CardDescription>Past evaluations automatically scored and ranked</CardDescription>
                     </div>
-                    <button
-                      onClick={() => mutateEvals()}
-                      className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                    >
-                      <RefreshCw className="size-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleExportPerformance}
+                        disabled={isExportingPerf}
+                        title="Export Performance Log"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isExportingPerf
+                          ? <Loader2 className="size-3.5 animate-spin" />
+                          : <FileSpreadsheet className="size-3.5" />
+                        }
+                        <span className="hidden sm:inline">
+                          {isExportingPerf ? 'Exporting…' : 'Export Performance Log'}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => mutateEvals()}
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                      >
+                        <RefreshCw className="size-4" />
+                      </button>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
