@@ -57,19 +57,42 @@ export async function GET(request: Request) {
     const todayISO = new Date().toISOString().split('T')[0]
 
     // Fetch all trackers
+    // NOTE: approval_status lives in the daily_work_log_reviews table (separate from the
+    // immutable daily_work_logs rows). We join the latest review per log and filter
+    // in application code to include only logs whose latest review is 'Approved'.
     const [
-      { data: logs },
+      { data: rawLogs },
       { data: letters },
       { data: bonds },
       { data: eots },
       { data: evals }
     ] = await Promise.all([
-      admin.from('daily_work_logs').select('*, employees(full_name, email, department)').eq('approval_status', 'Approved').order('log_date', { ascending: false }),
+      admin
+        .from('daily_work_logs')
+        .select('*, employees(full_name, email, department), daily_work_log_reviews(approval_status, head_comments, reviewed_at)')
+        .order('log_date', { ascending: false }),
       admin.from('correspondence_register').select('*').order('date_logged', { ascending: false }),
       admin.from('project_bonds').select('*').order('expiry_date', { ascending: true }),
       admin.from('eot_tracker').select('*').order('revised_completion_date', { ascending: true }),
       admin.from('performance_evaluations').select('*, employees(full_name, email, department)').order('evaluation_period_end', { ascending: false })
     ])
+
+    // Flatten the latest review onto each log, then keep only Approved ones
+    const logs = (rawLogs ?? [])
+      .map((log: any) => {
+        const reviews: any[] = log.daily_work_log_reviews ?? []
+        const latestReview = reviews.sort(
+          (a: any, b: any) =>
+            new Date(b.reviewed_at).getTime() - new Date(a.reviewed_at).getTime()
+        )[0]
+        return {
+          ...log,
+          daily_work_log_reviews: undefined,
+          approval_status: latestReview?.approval_status ?? 'Pending',
+          head_comments: latestReview?.head_comments ?? null,
+        }
+      })
+      .filter((log: any) => log.approval_status === 'Approved')
 
     // Create Excel Workbook
     const workbook = new ExcelJS.Workbook()
@@ -190,7 +213,7 @@ export async function GET(request: Request) {
     
     wsDiag.addRow(['Audit Review Status', 'VERIFIED & LOCKED']) // Row 4
     wsDiag.addRow(['Audit Review Completed By DGM on', nowTimestamp]) // Row 5
-    wsDiag.addRow(['Database Query Filter Enforcement', 'daily_work_logs.approval_status = \'Approved\'']) // Row 6
+    wsDiag.addRow(['Database Query Filter Enforcement', 'daily_work_log_reviews (latest per log) approval_status = \'Approved\'']) // Row 6
     wsDiag.addRow(['System Verification Signature', 'DGM CONTROL TOWER EXECUTIVE SECURE EXPORT GATE']) // Row 7
     wsDiag.addRow(['Export Date', todayISO]) // Row 8
 

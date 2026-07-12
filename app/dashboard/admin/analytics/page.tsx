@@ -146,12 +146,14 @@ export default function DGMAnalyticsPage() {
     }, false)
 
     try {
-      const res = await fetch('/api/daily-work-logs', {
+      const res = await fetch('/api/daily-work-logs/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...log,
-          approval_status: 'Approved'
+          reviews: [{
+            log_id: log.id,
+            approval_status: 'Approved'
+          }]
         })
       })
       if (!res.ok) throw new Error()
@@ -187,13 +189,15 @@ export default function DGMAnalyticsPage() {
     }, false)
 
     try {
-      const res = await fetch('/api/daily-work-logs', {
+      const res = await fetch('/api/daily-work-logs/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...log,
-          approval_status: 'Returned',
-          head_comments: comments
+          reviews: [{
+            log_id: log.id,
+            approval_status: 'Returned',
+            head_comments: comments
+          }]
         })
       })
       if (!res.ok) throw new Error()
@@ -622,11 +626,13 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                           </span>
                         </div>
                         <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${
-                          log.approval_status === 'Under Review' 
-                            ? 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300' 
+                          log.approval_status === 'Returned'
+                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                            : log.approval_status === 'Approved'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                             : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                         }`}>
-                          {log.approval_status}
+                          {log.approval_status ?? 'Pending'}
                         </span>
                       </div>
 
