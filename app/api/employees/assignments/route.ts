@@ -5,7 +5,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-async function checkAdminOrDgm(userId: string) {
+async function checkAdminOrDgm(userId: string, userEmail: string) {
+  // Fast-path: DGM_EMAIL env var match (covers first-login before DB row exists)
+  if (
+    process.env.DGM_EMAIL &&
+    userEmail.toLowerCase() === process.env.DGM_EMAIL.toLowerCase()
+  ) {
+    return true
+  }
   const admin = createAdminClient()
   const { data: employee } = await admin
     .from('employees')
@@ -27,7 +34,7 @@ export async function GET(_request: Request) {
     if (!user?.email) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
     }
-    const hasAccess = await checkAdminOrDgm(user.id)
+    const hasAccess = await checkAdminOrDgm(user.id, user.email)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Admin access required.' }, { status: 403 })
     }
@@ -63,7 +70,7 @@ export async function POST(request: Request) {
     if (!user?.email) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
     }
-    const hasAccess = await checkAdminOrDgm(user.id)
+    const hasAccess = await checkAdminOrDgm(user.id, user.email)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Admin access required.' }, { status: 403 })
     }
@@ -71,6 +78,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const employeeId = String(body.employee_id ?? '').trim()
     const projectCode = String(body.project_code ?? '').trim()
+
+    console.log('[assignments] POST called — employeeId:', employeeId, '| projectCode:', projectCode, '| callerEmail:', user.email)
 
     if (!employeeId || !projectCode) {
       return NextResponse.json(
@@ -80,24 +89,42 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient()
-    const { data, error } = await admin
-      .from('employee_project_assignments')
-      .insert({ employee_id: employeeId, project_code: projectCode })
-      .select()
-      .single()
 
-    if (error) {
-      if (error.code === '23505') {
-        return NextResponse.json(
-          { error: 'This project is already assigned to this employee.' },
-          { status: 409 },
-        )
-      }
-      console.log('[assignments] POST error:', error.message)
-      return NextResponse.json({ error: 'Failed to assign project.' }, { status: 500 })
+    // Verify the project code exists before inserting
+    const { data: project, error: projLookupErr } = await admin
+      .from('projects')
+      .select('code')
+      .eq('code', projectCode)
+      .maybeSingle()
+
+    if (projLookupErr) {
+      console.log('[assignments] POST project lookup error:', projLookupErr.message, projLookupErr.code, projLookupErr.details)
+      return NextResponse.json(
+        { error: `DB error looking up project: ${projLookupErr.message}` },
+        { status: 500 },
+      )
     }
 
-    return NextResponse.json({ assignment: data }, { status: 201 })
+    if (!project) {
+      // projects table might not exist yet — skip the FK check and attempt insert anyway
+      // (will get a clear FK error back if table exists but code is wrong)
+      console.log(`[assignments] POST warning: project "${projectCode}" not found in projects table — attempting insert anyway`)
+    }
+
+    // Use upsert to avoid duplicate-key errors on retry
+    const { error } = await admin
+      .from('employee_project_assignments')
+      .upsert(
+        { employee_id: employeeId, project_code: projectCode },
+        { onConflict: 'employee_id,project_code', ignoreDuplicates: true },
+      )
+
+    if (error) {
+      console.log('[assignments] POST upsert error:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint)
+      return NextResponse.json({ error: `Failed to assign project: ${error.message}` }, { status: 500 })
+    }
+
+    return NextResponse.json({ assignment: { employee_id: employeeId, project_code: projectCode } }, { status: 201 })
   } catch (err) {
     console.log('[assignments] POST unexpected:', err instanceof Error ? err.message : String(err))
     return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 })
@@ -117,7 +144,7 @@ export async function DELETE(request: Request) {
     if (!user?.email) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
     }
-    const hasAccess = await checkAdminOrDgm(user.id)
+    const hasAccess = await checkAdminOrDgm(user.id, user.email)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Admin access required.' }, { status: 403 })
     }

@@ -20,8 +20,11 @@ import {
   CheckCircle,
   AlertTriangle,
   Clock,
-  Sparkles
+  Sparkles,
+  Lock,
+  FolderKanban,
 } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -234,7 +237,7 @@ function ChangePasswordCard({ userEmail }: { userEmail: string }) {
 // Timesheet Logger row interface
 // ─────────────────────────────────────────
 interface TimesheetRow {
-  id?: number | string // numeric database id or temporary string id
+  id?: number | string // numeric database id (saved/locked) or temporary string id (unsaved)
   log_date: string
   assigned_tasks: string
   actual_work_done: string
@@ -247,7 +250,17 @@ interface TimesheetRow {
   office_leave_time: string
   approval_status: 'Pending' | 'Approved' | 'Returned'
   head_comments?: string | null
-  isNew?: boolean
+  reviewed_at?: string | null
+  isNew?: boolean // true only for rows not yet persisted to the database
+}
+
+/**
+ * Returns true when a row is already persisted (has a numeric DB id).
+ * Persisted rows are immutable — neither the employee nor the server
+ * allows any mutation once saved.
+ */
+function isRowLocked(row: TimesheetRow): boolean {
+  return typeof row.id === 'number'
 }
 
 export function EmployeeWorkspace({
@@ -320,8 +333,12 @@ export function EmployeeWorkspace({
             remark: log.remark || '',
             office_entrance_time: log.office_entrance_time ? log.office_entrance_time.substring(0, 5) : '08:30',
             office_leave_time: log.office_leave_time ? log.office_leave_time.substring(0, 5) : (isSaturday ? '12:30' : '17:30'),
-            approval_status: log.approval_status || 'Pending',
-            head_comments: log.head_comments,
+            // approval_status and head_comments come from the latest review record
+            // (flattened by the API) — never from a mutation of the original row
+            approval_status: log.approval_status ?? 'Pending',
+            head_comments: log.head_comments ?? null,
+            reviewed_at: log.reviewed_at ?? null,
+            isNew: false, // persisted rows are locked
           })
         })
       } else {
@@ -353,6 +370,14 @@ export function EmployeeWorkspace({
   }
 
   const handleInputChange = (index: number, field: keyof TimesheetRow, value: any) => {
+    // Immutability guard — saved rows are permanently read-only for employees
+    const row = localRows[index]
+    if (isRowLocked(row)) {
+      toast.error('Submission Locked', {
+        description: 'Once a daily task log is saved it cannot be modified. Please contact your line manager if a correction is needed.',
+      })
+      return
+    }
     setLocalRows(prev => {
       const copy = [...prev]
       copy[index] = { ...copy[index], [field]: value }
@@ -425,15 +450,18 @@ export function EmployeeWorkspace({
   const removeRow = (index: number) => {
     const row = localRows[index]
     
-    // Check if it's the only row for this date (we must keep at least one row per date!)
-    const countForDate = localRows.filter(r => r.log_date === row.log_date).length
-    if (countForDate <= 1) {
-      toast.error('Cannot remove row', { description: 'Each day of the week must have at least one logger row.' })
+    // Immutability guard — any row with a DB id is permanently locked
+    if (isRowLocked(row)) {
+      toast.error('Submission Locked', {
+        description: 'Saved task logs cannot be deleted. Please contact your line manager if a correction is needed.',
+      })
       return
     }
 
-    if (row.approval_status === 'Approved') {
-      toast.error('Cannot remove row', { description: 'Approved work logs cannot be deleted.' })
+    // Must keep at least one row per date
+    const countForDate = localRows.filter(r => r.log_date === row.log_date).length
+    if (countForDate <= 1) {
+      toast.error('Cannot remove row', { description: 'Each day of the week must have at least one logger row.' })
       return
     }
 
@@ -441,14 +469,18 @@ export function EmployeeWorkspace({
   }
 
   const handleSave = async () => {
-    // Validation
-    const invalidRows = localRows.filter(r => {
-      // Only validate rows that have SOME content, or if they are primary logs.
-      // If it's a default row with empty tasks AND zero hours, we might skip it or validate it.
-      // The instructions require checking that required textual log details are complete.
-      return !r.assigned_tasks.trim() || !r.actual_work_done.trim()
-    })
+    // Only new (unsaved) rows can be submitted — locked rows are silently excluded
+    const newRows = localRows.filter(r => !isRowLocked(r))
 
+    if (newRows.length === 0) {
+      toast.info('Nothing new to save', {
+        description: 'All logs for this week have already been submitted and are locked.',
+      })
+      return
+    }
+
+    // Validation — only against new rows
+    const invalidRows = newRows.filter(r => !r.assigned_tasks.trim() || !r.actual_work_done.trim())
     if (invalidRows.length > 0) {
       toast.error('Incomplete work logs', {
         description: `Please fill in "Assigned Tasks" and "Actual Work Done" for all rows. (${invalidRows.length} incomplete)`,
@@ -458,46 +490,48 @@ export function EmployeeWorkspace({
 
     setSaving(true)
     try {
-      // Format rows to match database schema (strip temporary IDs, ensure percentage is decimal)
-      const logsToSave = localRows.map(row => {
-        const payload: any = {
-          log_date: row.log_date,
-          assigned_tasks: row.assigned_tasks,
-          actual_work_done: row.actual_work_done,
-          hours_worked: Number(row.hours_worked),
-          actual_working_hour: Number(row.actual_working_hour),
-          completion_percentage: Number(row.completion_percentage),
-          done_at_home: !!row.done_at_home,
-          remark: row.remark || null,
-          office_entrance_time: row.office_entrance_time ? `${row.office_entrance_time}:00` : null,
-          office_leave_time: row.office_leave_time ? `${row.office_leave_time}:00` : null,
-        }
-        
-        // If it's not a temporary ID, include it to trigger an UPDATE
-        if (row.id && typeof row.id === 'number') {
-          payload.id = row.id
-        }
-        
-        return payload
-      })
+      // Strip any temporary string ids — only plain INSERT records, no ids included
+      const logsToInsert = newRows.map(row => ({
+        log_date: row.log_date,
+        assigned_tasks: row.assigned_tasks,
+        actual_work_done: row.actual_work_done,
+        hours_worked: Number(row.hours_worked),
+        actual_working_hour: Number(row.actual_working_hour),
+        completion_percentage: Number(row.completion_percentage),
+        done_at_home: !!row.done_at_home,
+        remark: row.remark || null,
+        office_entrance_time: row.office_entrance_time ? `${row.office_entrance_time}:00` : null,
+        office_leave_time: row.office_leave_time ? `${row.office_leave_time}:00` : null,
+        // NOTE: no `id` field — this guarantees the API receives INSERT-only records
+      }))
 
       const res = await fetch('/api/daily-work-logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logsToSave)
+        body: JSON.stringify(logsToInsert),
       })
 
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Failed to submit timesheet.')
 
-      toast.success('Timesheet saved successfully', {
-        description: 'All work logs have been streamed to Supabase.'
+      if (!res.ok) {
+        // Surface the lock error specifically
+        if (res.status === 409) {
+          toast.error('Submission Locked', {
+            description: json.error ?? 'Once a daily task log is saved it cannot be modified.',
+          })
+          return
+        }
+        throw new Error(json.error ?? 'Failed to submit timesheet.')
+      }
+
+      toast.success('Timesheet saved', {
+        description: `${json.count} log${json.count !== 1 ? 's' : ''} saved successfully. They are now locked and read-only.`,
       })
       mutate()
     } catch (err) {
       console.error('[timesheet] save error:', err)
       toast.error('Failed to save timesheet', {
-        description: err instanceof Error ? err.message : 'Please check your connection and try again.'
+        description: err instanceof Error ? err.message : 'Please check your connection and try again.',
       })
     } finally {
       setSaving(false)
@@ -555,6 +589,13 @@ export function EmployeeWorkspace({
               <LayoutDashboard className="size-4" />
               Timesheet
             </button>
+            <Link
+              href="/dashboard/employee/projects"
+              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-background/60"
+            >
+              <FolderKanban className="size-4" />
+              My Assigned Projects
+            </Link>
             <button
               id="tab-settings"
               onClick={() => setActiveTab('settings')}
@@ -651,7 +692,9 @@ export function EmployeeWorkspace({
                     </TableHeader>
                     <TableBody>
                       {localRows.map((row, index) => {
+                        const locked = isRowLocked(row)
                         const isApproved = row.approval_status === 'Approved'
+                        const isReturned = row.approval_status === 'Returned'
                         const formattedDate = new Date(row.log_date)
                         const isWeekend = formattedDate.getDay() === 0 || formattedDate.getDay() === 6
                         const hasComments = row.head_comments && row.head_comments.trim()
@@ -659,16 +702,31 @@ export function EmployeeWorkspace({
                         return (
                           <TableRow
                             key={row.id || `row_${row.log_date}_${index}`}
-                            className={`${isWeekend ? 'bg-secondary/15' : ''} ${isApproved ? 'bg-secondary/20 opacity-80' : ''} transition-colors border-b border-border/60 align-top`}
+                            className={`${isWeekend ? 'bg-secondary/15' : ''} ${locked ? 'bg-secondary/10' : ''} ${isApproved ? 'bg-emerald-500/5' : ''} transition-colors border-b border-border/60 align-top`}
                           >
                             {/* Day and Date */}
                             <TableCell className="py-4">
-                              <div className="font-semibold text-foreground text-sm">
+                              <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
                                 {displayDateLabel(formattedDate)}
+                                {locked && (
+                                  <span
+                                    className="inline-flex"
+                                    aria-label="Submitted and locked"
+                                    title="This log is locked and cannot be edited"
+                                  >
+                                    <Lock className="size-3 text-muted-foreground shrink-0" />
+                                  </span>
+                                )}
                               </div>
                               <div className="text-xs text-muted-foreground mt-0.5">
                                 {row.log_date}
                               </div>
+                              {locked && (
+                                <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                  <Lock className="size-2.5" />
+                                  Submitted · Read-only
+                                </div>
+                              )}
                               {hasComments && (
                                 <div className="mt-2 text-xs border-l-2 border-rose-400 bg-rose-50/50 dark:bg-rose-950/20 px-2 py-1 text-rose-600 dark:text-rose-400 rounded-r">
                                   <span className="font-semibold block">Head comments:</span>
@@ -686,8 +744,8 @@ export function EmployeeWorkspace({
                                     type="time"
                                     value={row.office_entrance_time}
                                     onChange={(e) => handleInputChange(index, 'office_entrance_time', e.target.value)}
-                                    disabled={isApproved}
-                                    className="bg-transparent text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded p-0.5 border border-transparent hover:border-border transition"
+                                    disabled={locked}
+                                    className="bg-transparent text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded p-0.5 border border-transparent hover:border-border transition disabled:cursor-not-allowed disabled:opacity-60"
                                   />
                                 </div>
                                 <div className="flex items-center gap-1.5">
@@ -696,8 +754,8 @@ export function EmployeeWorkspace({
                                     type="time"
                                     value={row.office_leave_time}
                                     onChange={(e) => handleInputChange(index, 'office_leave_time', e.target.value)}
-                                    disabled={isApproved}
-                                    className="bg-transparent text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded p-0.5 border border-transparent hover:border-border transition"
+                                    disabled={locked}
+                                    className="bg-transparent text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded p-0.5 border border-transparent hover:border-border transition disabled:cursor-not-allowed disabled:opacity-60"
                                   />
                                 </div>
                               </div>
@@ -709,12 +767,12 @@ export function EmployeeWorkspace({
                                 <textarea
                                   value={row.assigned_tasks}
                                   onChange={(e) => handleInputChange(index, 'assigned_tasks', e.target.value)}
-                                  disabled={isApproved}
+                                  disabled={locked}
                                   placeholder="Tasks assigned (markdown list...)"
                                   rows={2}
-                                  className="w-full min-h-[56px] resize-y rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 transition"
+                                  className="w-full min-h-[56px] resize-y rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
                                 />
-                                {!isApproved && (
+                                {!locked && (
                                   <button
                                     type="button"
                                     onClick={() => correctFieldText(index, 'assigned_tasks')}
@@ -739,12 +797,12 @@ export function EmployeeWorkspace({
                                 <textarea
                                   value={row.actual_work_done}
                                   onChange={(e) => handleInputChange(index, 'actual_work_done', e.target.value)}
-                                  disabled={isApproved}
+                                  disabled={locked}
                                   placeholder="Work accomplished (markdown list...)"
                                   rows={2}
-                                  className="w-full min-h-[56px] resize-y rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 transition"
+                                  className="w-full min-h-[56px] resize-y rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
                                 />
-                                {!isApproved && (
+                                {!locked && (
                                   <button
                                     type="button"
                                     onClick={() => correctFieldText(index, 'actual_work_done')}
@@ -769,11 +827,11 @@ export function EmployeeWorkspace({
                                 type="number"
                                 value={row.hours_worked}
                                 onChange={(e) => handleInputChange(index, 'hours_worked', parseFloat(e.target.value) || 0)}
-                                disabled={isApproved}
+                                disabled={locked}
                                 min="0"
                                 max="24"
                                 step="0.25"
-                                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-center text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 transition"
+                                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-center text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
                               />
                             </TableCell>
 
@@ -783,11 +841,11 @@ export function EmployeeWorkspace({
                                 type="number"
                                 value={row.actual_working_hour}
                                 onChange={(e) => handleInputChange(index, 'actual_working_hour', parseFloat(e.target.value) || 0)}
-                                disabled={isApproved}
+                                disabled={locked}
                                 min="0"
                                 max="24"
                                 step="0.25"
-                                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-center text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 transition"
+                                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-center text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
                               />
                             </TableCell>
 
@@ -801,8 +859,8 @@ export function EmployeeWorkspace({
                                   step="0.05"
                                   value={row.completion_percentage}
                                   onChange={(e) => handleInputChange(index, 'completion_percentage', parseFloat(e.target.value))}
-                                  disabled={isApproved}
-                                  className={`w-full cursor-pointer h-1.5 rounded-lg bg-secondary focus:outline-none ${getSliderTrackClass(row.completion_percentage)}`}
+                                  disabled={locked}
+                                  className={`w-full cursor-pointer h-1.5 rounded-lg bg-secondary focus:outline-none disabled:cursor-not-allowed ${getSliderTrackClass(row.completion_percentage)}`}
                                 />
                                 <div className="text-right text-[11px]">
                                   <span className={getPercentageColor(row.completion_percentage)}>
@@ -818,22 +876,23 @@ export function EmployeeWorkspace({
                                 type="checkbox"
                                 checked={row.done_at_home}
                                 onChange={(e) => handleInputChange(index, 'done_at_home', e.target.checked)}
-                                disabled={isApproved}
-                                className="size-4 rounded border-border bg-background text-primary focus:ring-primary disabled:opacity-50 cursor-pointer"
+                                disabled={locked}
+                                className="size-4 rounded border-border bg-background text-primary focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                               />
                             </TableCell>
 
                             {/* Remark */}
                             <TableCell className="py-3">
                               <div className="flex flex-col gap-1">
-                                <Input
+                                <input
+                                  type="text"
                                   value={row.remark}
                                   onChange={(e) => handleInputChange(index, 'remark', e.target.value)}
-                                  disabled={isApproved}
+                                  disabled={locked}
                                   placeholder="Notes..."
-                                  className="h-8 text-xs px-2"
+                                  className="h-8 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
                                 />
-                                {!isApproved && row.remark.trim() && (
+                                {!locked && row.remark.trim() && (
                                   <button
                                     type="button"
                                     onClick={() => correctFieldText(index, 'remark')}
@@ -856,9 +915,9 @@ export function EmployeeWorkspace({
                             <TableCell className="py-3 text-center">
                               <span
                                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                  row.approval_status === 'Approved'
+                                  isApproved
                                     ? 'bg-emerald-500/10 text-emerald-600'
-                                    : row.approval_status === 'Returned'
+                                    : isReturned
                                       ? 'bg-rose-500/10 text-rose-600'
                                       : 'bg-amber-500/10 text-amber-600'
                                 }`}
@@ -870,13 +929,17 @@ export function EmployeeWorkspace({
                             {/* Action Block */}
                             <TableCell className="py-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => addSplitTaskRow(row.log_date)}
-                                  className="inline-flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
-                                  title="Add Split Task Row"
-                                >
-                                  <Plus className="size-4" />
-                                </button>
+                                {/* Split task only allowed on unlocked (new) rows */}
+                                {!locked && (
+                                  <button
+                                    onClick={() => addSplitTaskRow(row.log_date)}
+                                    className="inline-flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+                                    title="Add Split Task Row"
+                                  >
+                                    <Plus className="size-4" />
+                                  </button>
+                                )}
+                                {/* Trash only visible for unsaved temp rows */}
                                 {row.id && typeof row.id === 'string' && row.id.startsWith('temp_') ? (
                                   <button
                                     onClick={() => removeRow(index)}
@@ -885,8 +948,17 @@ export function EmployeeWorkspace({
                                   >
                                     <Trash2 className="size-4" />
                                   </button>
+                                ) : locked ? (
+                                  /* Lock icon signals immutability visually */
+                                  <div
+                                    className="inline-flex size-7 items-center justify-center rounded-md border border-border bg-secondary/40 text-muted-foreground"
+                                    title="Submitted and locked — cannot be modified"
+                                    aria-label="Locked"
+                                  >
+                                    <Lock className="size-3.5" />
+                                  </div>
                                 ) : (
-                                  <div className="w-7 h-7" /> // placeholder
+                                  <div className="w-7 h-7" />
                                 )}
                               </div>
                             </TableCell>

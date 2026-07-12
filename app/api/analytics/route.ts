@@ -5,7 +5,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-async function checkAdminAccess(userId: string) {
+async function checkAdminAccess(userId: string, userEmail: string) {
+  // Fast path: DGM_EMAIL env var — same pattern used across all other routes
+  if (
+    process.env.DGM_EMAIL &&
+    userEmail.toLowerCase() === process.env.DGM_EMAIL.toLowerCase()
+  ) {
+    return true
+  }
   const admin = createAdminClient()
   const { data: employee } = await admin
     .from('employees')
@@ -25,7 +32,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
     }
 
-    const hasAccess = await checkAdminAccess(user.id)
+    const hasAccess = await checkAdminAccess(user.id, user.email ?? '')
     if (!hasAccess) {
       return NextResponse.json({ error: 'Admin or DGM access required.' }, { status: 403 })
     }

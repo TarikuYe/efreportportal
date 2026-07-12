@@ -5,9 +5,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
 async function getOrCreateEmployee(userId: string, email: string, fullName: string) {
   const admin = createAdminClient()
-  const { data: existing, error } = await admin
+  const { data: existing } = await admin
     .from('employees')
     .select('*')
     .eq('id', userId)
@@ -15,10 +17,9 @@ async function getOrCreateEmployee(userId: string, email: string, fullName: stri
 
   if (existing) return existing
 
-  // Auto-provision if not present
   const dgmEmail = process.env.DGM_EMAIL?.toLowerCase() ?? 'dgm@efae.com'
   const isDGM = email.toLowerCase() === dgmEmail
-  
+
   const { data: newEmp, error: createError } = await admin
     .from('employees')
     .insert({
@@ -26,7 +27,7 @@ async function getOrCreateEmployee(userId: string, email: string, fullName: stri
       full_name: fullName || email.split('@')[0],
       email: email,
       role: isDGM ? 'dgm' : 'engineer',
-      department: 'Procurement and Contract Administration'
+      department: 'Procurement and Contract Administration',
     })
     .select()
     .single()
@@ -37,12 +38,15 @@ async function getOrCreateEmployee(userId: string, email: string, fullName: stri
   return newEmp
 }
 
-// GET /api/daily-work-logs
-// Query params: start_date, end_date, employee_id (optional, for admin/dgm viewing specific logs)
+// ─── GET /api/daily-work-logs ─────────────────────────────────────────────────
+// Returns logs joined with their latest review status.
+// Query params: start_date, end_date, employee_id (admin/dgm only), pending=true
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user || !user.email) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
@@ -51,7 +55,7 @@ export async function GET(request: Request) {
     const currentEmp = await getOrCreateEmployee(
       user.id,
       user.email,
-      user.user_metadata?.full_name ?? ''
+      user.user_metadata?.full_name ?? '',
     )
 
     const { searchParams } = new URL(request.url)
@@ -67,15 +71,16 @@ export async function GET(request: Request) {
       if (currentEmp.role !== 'admin' && currentEmp.role !== 'dgm') {
         return NextResponse.json({ error: 'Permission denied.' }, { status: 403 })
       }
+      // Fetch logs that have no approved review yet (or whose latest review is Pending/Returned)
       query = admin
         .from('daily_work_logs')
-        .select('*, employees(full_name, email, department, role)')
-        .eq('approval_status', 'Pending')
+        .select(
+          '*, employees(full_name, email, department, role), daily_work_log_reviews(approval_status, head_comments, reviewed_at)',
+        )
         .order('log_date', { ascending: false })
     } else {
       let queryEmployeeId = currentEmp.id
 
-      // If targetEmployeeId is specified, check if current user is admin/dgm
       if (targetEmployeeId && targetEmployeeId !== currentEmp.id) {
         if (currentEmp.role !== 'admin' && currentEmp.role !== 'dgm') {
           return NextResponse.json({ error: 'Permission denied.' }, { status: 403 })
@@ -85,16 +90,14 @@ export async function GET(request: Request) {
 
       query = admin
         .from('daily_work_logs')
-        .select('*, employees(full_name, email, department, role)')
+        .select(
+          '*, employees(full_name, email, department, role), daily_work_log_reviews(approval_status, head_comments, reviewed_at, reviewed_by)',
+        )
         .eq('employee_id', queryEmployeeId)
         .order('log_date', { ascending: true })
 
-      if (startDate) {
-        query = query.gte('log_date', startDate)
-      }
-      if (endDate) {
-        query = query.lte('log_date', endDate)
-      }
+      if (startDate) query = query.gte('log_date', startDate)
+      if (endDate) query = query.lte('log_date', endDate)
     }
 
     const { data: logs, error } = await query
@@ -104,19 +107,45 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Failed to retrieve logs.' }, { status: 500 })
     }
 
-    return NextResponse.json({ logs: logs ?? [] })
+    // Flatten the latest review onto each log so the client receives a familiar shape
+    const enrichedLogs = (logs ?? []).map((log: any) => {
+      const reviews: any[] = log.daily_work_log_reviews ?? []
+      // Sort descending by reviewed_at and take the most recent
+      const latestReview = reviews.sort(
+        (a: any, b: any) =>
+          new Date(b.reviewed_at).getTime() - new Date(a.reviewed_at).getTime(),
+      )[0]
+
+      return {
+        ...log,
+        daily_work_log_reviews: undefined, // remove nested array from response
+        approval_status: latestReview?.approval_status ?? 'Pending',
+        head_comments: latestReview?.head_comments ?? null,
+        reviewed_at: latestReview?.reviewed_at ?? null,
+      }
+    })
+
+    return NextResponse.json({ logs: enrichedLogs })
   } catch (err) {
     console.error('[daily-work-logs] GET unexpected:', err)
     return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 })
   }
 }
 
-// POST /api/daily-work-logs
-// Body: Array of log rows to upsert
+// ─── POST /api/daily-work-logs ────────────────────────────────────────────────
+// IMMUTABILITY POLICY:
+//   - INSERT is allowed for any authenticated employee (for their own employee_id).
+//   - UPDATE / DELETE are PERMANENTLY BLOCKED for employees. Any attempt to send
+//     a log with an existing numeric id is rejected at the API layer — before the
+//     request ever reaches Supabase — with a clear 409 Locked response.
+//   - Admins/DGM who need to record an approval decision must POST to
+//     /api/daily-work-logs/review instead. They cannot mutate submitted rows either.
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user || !user.email) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
@@ -125,7 +154,7 @@ export async function POST(request: Request) {
     const currentEmp = await getOrCreateEmployee(
       user.id,
       user.email,
-      user.user_metadata?.full_name ?? ''
+      user.user_metadata?.full_name ?? '',
     )
 
     const body = await request.json()
@@ -135,36 +164,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No logs provided.' }, { status: 400 })
     }
 
+    // ── IMMUTABILITY GATE ────────────────────────────────────────────────────
+    // If ANY row in the batch carries a numeric id (i.e. already exists in the
+    // DB), the entire request is rejected. Employees may ONLY insert new rows.
+    const hasExistingIds = logs.some((log) => log.id && typeof log.id === 'number')
+    if (hasExistingIds) {
+      return NextResponse.json(
+        {
+          error:
+            'Submission Locked: Once a daily task log is saved it cannot be modified or deleted. ' +
+            'Please contact your line manager if a correction is needed.',
+          code: 'LOG_IMMUTABLE',
+        },
+        { status: 409 },
+      )
+    }
+
     const admin = createAdminClient()
+    const recordsToInsert = []
 
-    // Validate and prepare log records
-    const recordsToUpsert = []
-    
     for (const log of logs) {
-      // If updating an existing log, check if it's already approved (can't edit approved logs)
-      if (log.id) {
-        const { data: existingLog } = await admin
-          .from('daily_work_logs')
-          .select('approval_status, employee_id')
-          .eq('id', log.id)
-          .maybeSingle()
-
-        if (existingLog) {
-          if (existingLog.employee_id !== currentEmp.id && currentEmp.role !== 'admin' && currentEmp.role !== 'dgm') {
-            return NextResponse.json({ error: 'Permission denied to edit this log.' }, { status: 403 })
-          }
-          if (existingLog.approval_status === 'Approved' && currentEmp.role === 'engineer') {
-            return NextResponse.json({ error: 'Cannot edit logs that have already been approved.' }, { status: 400 })
-          }
-        }
-      }
-
-      // Check required text
+      // Validate required text fields
       const assignedTasks = String(log.assigned_tasks ?? '').trim()
       const actualWorkDone = String(log.actual_work_done ?? '').trim()
 
       if (!assignedTasks || !actualWorkDone) {
-        return NextResponse.json({ error: 'Required textual log details (Assigned Tasks and Actual Work Done) are incomplete.' }, { status: 400 })
+        return NextResponse.json(
+          {
+            error:
+              'Required textual log details (Assigned Tasks and Actual Work Done) are incomplete.',
+          },
+          { status: 400 },
+        )
       }
 
       const logDate = log.log_date
@@ -172,56 +203,89 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'log_date is required.' }, { status: 400 })
       }
 
-      const hoursWorked = Number(log.hours_worked ?? 0)
-      const actualWorkingHour = Number(log.actual_working_hour ?? 0)
-      const completionPercentage = Number(log.completion_percentage ?? 0)
+      // ── DUPLICATE CHECK ──────────────────────────────────────────────────
+      // An employee cannot insert a second log for the same date+task combo.
+      // The DB has no unique constraint per-date, but we can still catch
+      // accidental duplicate submits at the API layer.
+      const { data: existing } = await admin
+        .from('daily_work_logs')
+        .select('id')
+        .eq('employee_id', currentEmp.id)
+        .eq('log_date', logDate)
+        .limit(1)
 
-      // Construct row
-      const record: Record<string, any> = {
-        employee_id: log.employee_id || currentEmp.id, // For engineers, force their own id. For admins/dgm editing, preserve selected employee.
+      // Only block if this specific log isn't a legitimate "split task" for same day.
+      // We allow multiple rows per day (split tasks), but we flag if the content is
+      // identical (exact text match) which is almost certainly a double-submit.
+      if (existing && existing.length > 0) {
+        const { data: duplicate } = await admin
+          .from('daily_work_logs')
+          .select('id')
+          .eq('employee_id', currentEmp.id)
+          .eq('log_date', logDate)
+          .eq('assigned_tasks', assignedTasks)
+          .eq('actual_work_done', actualWorkDone)
+          .limit(1)
+
+        if (duplicate && duplicate.length > 0) {
+          return NextResponse.json(
+            {
+              error: `Duplicate log detected for ${logDate}. A log with identical task content already exists and cannot be overwritten.`,
+              code: 'LOG_DUPLICATE',
+            },
+            { status: 409 },
+          )
+        }
+      }
+
+      const completionPct = Number(log.completion_percentage ?? 0)
+
+      recordsToInsert.push({
+        // Always force the authenticated user's own employee_id — never allow spoofing
+        employee_id: currentEmp.id,
         log_date: logDate,
         assigned_tasks: assignedTasks,
         actual_work_done: actualWorkDone,
-        hours_worked: hoursWorked,
-        actual_working_hour: actualWorkingHour,
-        completion_percentage: completionPercentage > 1 ? completionPercentage / 100 : completionPercentage, // handle decimals vs percent representation
+        hours_worked: Number(log.hours_worked ?? 0),
+        actual_working_hour: Number(log.actual_working_hour ?? 0),
+        completion_percentage:
+          completionPct > 1 ? completionPct / 100 : completionPct,
         done_at_home: !!log.done_at_home,
         remark: log.remark ? String(log.remark).trim() : null,
         office_entrance_time: log.office_entrance_time || null,
         office_leave_time: log.office_leave_time || null,
-      }
-
-      if (log.id) {
-        record.id = log.id
-      }
-
-      // If head is reviewing, allow setting approval_status and head_comments
-      if (currentEmp.role === 'admin' || currentEmp.role === 'dgm') {
-        if (log.approval_status) {
-          record.approval_status = log.approval_status
-        }
-        if (log.head_comments !== undefined) {
-          record.head_comments = log.head_comments ? String(log.head_comments).trim() : null
-        }
-      } else {
-        // Reset approval status to Pending if edited by engineer (unless it was already Returned)
-        record.approval_status = 'Pending'
-      }
-
-      recordsToUpsert.push(record)
+        // approval_status intentionally NOT set here — it starts as 'Pending'
+        // and is managed exclusively via the /api/daily-work-logs/review route.
+      })
     }
 
-    const { data: upsertedData, error: upsertError } = await admin
+    const { data: insertedData, error: insertError } = await admin
       .from('daily_work_logs')
-      .upsert(recordsToUpsert)
+      .insert(recordsToInsert)
       .select()
 
-    if (upsertError) {
-      console.error('[daily-work-logs] POST error:', upsertError.message)
-      return NextResponse.json({ error: 'Failed to save logs: ' + upsertError.message }, { status: 500 })
+    if (insertError) {
+      // Propagate DB-level trigger error messages clearly to the client
+      const isLockError =
+        insertError.code === '23001' ||
+        insertError.message?.toLowerCase().includes('submission locked')
+      console.error('[daily-work-logs] POST insert error:', insertError.message)
+      return NextResponse.json(
+        {
+          error: isLockError
+            ? 'Submission Locked: Once a daily task log is saved it cannot be modified or deleted.'
+            : 'Failed to save logs: ' + insertError.message,
+          code: isLockError ? 'LOG_IMMUTABLE' : 'DB_ERROR',
+        },
+        { status: isLockError ? 409 : 500 },
+      )
     }
 
-    return NextResponse.json({ success: true, count: upsertedData?.length ?? 0, logs: upsertedData })
+    return NextResponse.json({
+      success: true,
+      count: insertedData?.length ?? 0,
+      logs: insertedData,
+    })
   } catch (err) {
     console.error('[daily-work-logs] POST unexpected:', err)
     return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 })

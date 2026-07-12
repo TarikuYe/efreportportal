@@ -5,7 +5,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-async function checkAdminOrDgm(userId: string, allowRegistrar = false) {
+async function checkAdminOrDgm(userId: string, userEmail: string, allowRegistrar = false) {
+  // Fast-path: DGM_EMAIL env var match (covers first login before DB row exists)
+  if (
+    process.env.DGM_EMAIL &&
+    userEmail.toLowerCase() === process.env.DGM_EMAIL.toLowerCase()
+  ) {
+    return true
+  }
   const admin = createAdminClient()
   const { data: employee } = await admin
     .from('employees')
@@ -24,7 +31,7 @@ function generateTempPassword(): string {
 }
 
 // ─────────────────────────────────────────
-// GET /api/employees  — list all employees with project assignments (admin only)
+// GET /api/employees
 // ─────────────────────────────────────────
 export async function GET(_request: Request) {
   try {
@@ -34,7 +41,7 @@ export async function GET(_request: Request) {
     if (!user?.email) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
     }
-    const hasAccess = await checkAdminOrDgm(user.id, true)
+    const hasAccess = await checkAdminOrDgm(user.id, user.email, true)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Admin access required.' }, { status: 403 })
     }
@@ -50,8 +57,7 @@ export async function GET(_request: Request) {
       return NextResponse.json({ error: 'Failed to load employees.' }, { status: 500 })
     }
 
-    // Enrich with real active status from Auth ban state
-    // (no 'active' column in DB — ban status lives in Supabase Auth)
+    // Enrich with active status from Auth ban state
     let bannedIds = new Set<string>()
     try {
       const { data: authList } = await admin.auth.admin.listUsers({ perPage: 1000 })
@@ -88,7 +94,7 @@ export async function POST(request: Request) {
     if (!user?.email) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
     }
-    const hasAccess = await checkAdminOrDgm(user.id)
+    const hasAccess = await checkAdminOrDgm(user.id, user.email)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Admin access required.' }, { status: 403 })
     }
@@ -109,7 +115,6 @@ export async function POST(request: Request) {
     const tempPassword = generateTempPassword()
     const admin = createAdminClient()
 
-    // Create auth user — immediately confirmed, no email required
     const { data: authData, error: authError } = await admin.auth.admin.createUser({
       email,
       password: tempPassword,
@@ -130,7 +135,6 @@ export async function POST(request: Request) {
 
     const newUserId = authData.user.id
 
-    // Create profile row in employees table
     const { data: profile, error: profileError } = await admin
       .from('employees')
       .insert({
@@ -144,7 +148,6 @@ export async function POST(request: Request) {
       .single()
 
     if (profileError) {
-      // Rollback auth user if profile insert fails
       await admin.auth.admin.deleteUser(newUserId)
       console.log('[employees] profile insert error:', profileError.message)
       return NextResponse.json({ error: 'Failed to create employee profile.' }, { status: 500 })
@@ -171,7 +174,7 @@ export async function PATCH(request: Request) {
     if (!user?.email) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
     }
-    const hasAccess = await checkAdminOrDgm(user.id, true)
+    const hasAccess = await checkAdminOrDgm(user.id, user.email, true)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Admin access required.' }, { status: 403 })
     }
@@ -184,14 +187,12 @@ export async function PATCH(request: Request) {
 
     const admin = createAdminClient()
 
-    // Handle active/inactive state via auth ban (no 'active' column in DB yet)
     if (typeof body.active === 'boolean') {
       if (body.active === false) {
         await admin.auth.admin.updateUserById(id, { ban_duration: '876600h' })
       } else {
         await admin.auth.admin.updateUserById(id, { ban_duration: 'none' })
       }
-      // If only toggling active state, return early
       if (body.full_name === undefined && body.department === undefined && body.role === undefined) {
         return NextResponse.json({ employee: { id, active: body.active } })
       }

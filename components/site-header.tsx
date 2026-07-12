@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Compass, Menu, X, ChevronRight, LayoutDashboard, BarChart3, Inbox, Users, Home } from 'lucide-react'
+import { Compass, Menu, X, ChevronRight, LayoutDashboard, BarChart3, Inbox, Users, Home, FolderKanban } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { SignOutButton } from '@/components/sign-out-button'
 import { useEffect, useState } from 'react'
@@ -18,6 +18,7 @@ const ROUTING_DICTIONARY: Record<string, { label: string; href: string; icon: an
   ],
   dgm: [
     { label: 'Control Tower', href: '/dashboard/admin/analytics', icon: BarChart3 },
+    { label: 'Projects', href: '/dashboard/admin/projects', icon: FolderKanban },
     { label: 'View Registers', href: '/dashboard/registrar', icon: LayoutDashboard },
     // { label: 'AI Assistant', href: '/dashboard/ai-assistant', icon: Sparkles }, // hidden until API subscription is ready
   ],

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { PROJECTS } from '@/lib/reports'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -63,15 +62,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ projects: PROJECTS })
     }
 
-    // If the table is empty and we have the static list, seed the response
-    if (!data || data.length === 0) {
-      return NextResponse.json({ projects: PROJECTS })
-    }
-
-    return NextResponse.json({ projects: data })
+    // Return whatever the DB has — empty is a valid state
+    return NextResponse.json({ projects: data ?? [] })
   } catch (err) {
     console.log('[projects] GET unexpected:', err instanceof Error ? err.message : String(err))
-    return NextResponse.json({ projects: PROJECTS })
+    return NextResponse.json({ projects: [] })
   }
 }
 

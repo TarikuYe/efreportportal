@@ -15,7 +15,9 @@ import {
   AlertTriangle,
   FolderOpen,
   LayoutDashboard,
+  FolderKanban,
 } from 'lucide-react'
+import Link from 'next/link'
 import {
   Table,
   TableBody,
@@ -213,7 +215,7 @@ export function AdminDashboard() {
   return (
     <div className="flex flex-col gap-8">
       {/* Tab navigation */}
-      <div className="flex items-center gap-1 rounded-xl border border-border bg-secondary/40 p-1 w-fit">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-secondary/40 p-1 w-fit">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -228,6 +230,14 @@ export function AdminDashboard() {
             {tab.label}
           </button>
         ))}
+        {/* External link to the dedicated Project Management Console */}
+        <Link
+          href="/dashboard/admin/projects"
+          className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-background/60"
+        >
+          <FolderKanban className="size-4" />
+          Project Console
+        </Link>
       </div>
 
       {/* ── SUBMISSIONS TAB ── */}
