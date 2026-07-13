@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -23,9 +23,11 @@ import {
   Sparkles,
   Lock,
   FolderKanban,
+  Save,
 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { EmployeeReportPanel } from '@/components/employee-report-panel'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -263,6 +265,63 @@ function isRowLocked(row: TimesheetRow): boolean {
   return typeof row.id === 'number'
 }
 
+// ─────────────────────────────────────────
+// localStorage draft helpers
+//
+// Drafts are stored as a JSON map of { [log_date]: Partial<TimesheetRow> }
+// so each day's unsaved content is independently tracked.
+// Key format: timesheet_draft__{userId}__{mondayStr}
+// ─────────────────────────────────────────
+type DraftMap = Record<string, Partial<TimesheetRow>>
+
+function getDraftKey(userId: string, mondayStr: string): string {
+  return `timesheet_draft__${userId}__${mondayStr}`
+}
+
+function saveDrafts(userId: string, mondayStr: string, rows: TimesheetRow[]): void {
+  if (typeof window === 'undefined') return
+  try {
+    const drafts: DraftMap = {}
+    rows.forEach((row) => {
+      if (!isRowLocked(row)) {
+        drafts[row.log_date] = {
+          assigned_tasks: row.assigned_tasks,
+          actual_work_done: row.actual_work_done,
+          hours_worked: row.hours_worked,
+          actual_working_hour: row.actual_working_hour,
+          completion_percentage: row.completion_percentage,
+          done_at_home: row.done_at_home,
+          remark: row.remark,
+          office_entrance_time: row.office_entrance_time,
+          office_leave_time: row.office_leave_time,
+        }
+      }
+    })
+    window.localStorage.setItem(getDraftKey(userId, mondayStr), JSON.stringify(drafts))
+  } catch {
+    // localStorage quota exceeded or unavailable — silently skip
+  }
+}
+
+function loadDrafts(userId: string, mondayStr: string): DraftMap {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem(getDraftKey(userId, mondayStr))
+    return raw ? (JSON.parse(raw) as DraftMap) : {}
+  } catch {
+    return {}
+  }
+}
+
+function clearDrafts(userId: string, mondayStr: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(getDraftKey(userId, mondayStr))
+  } catch {
+    // ignore
+  }
+}
+
 export function EmployeeWorkspace({
   userId,
   userEmail,
@@ -299,25 +358,31 @@ export function EmployeeWorkspace({
   const mondayStr = formatDateString(monday)
   const sundayStr = formatDateString(sunday)
 
-  // Fetch week's logs from API
+  // Fetch week's logs from API — poll every 10 s so admin approvals/returns
+  // are reflected on the employee side without a manual page reload.
   const { data, isLoading, mutate } = useSWR<{ logs: any[] }>(
     `/api/daily-work-logs?start_date=${mondayStr}&end_date=${sundayStr}`,
-    fetcher
+    fetcher,
+    { refreshInterval: 10_000 }
   )
 
-  // Sync database logs with local rows state
+  // Sync database logs with local rows state, restoring any localStorage drafts
+  // for days that haven't been submitted yet.
   useEffect(() => {
     if (!data) return
 
     const dbLogs = data.logs ?? []
+    const drafts = loadDrafts(userId, mondayStr)
     const mappedRows: TimesheetRow[] = []
 
     // Populate all 7 days of the week.
-    // If a day has logs in the database, add them. Otherwise, seed an empty row for that day.
+    // If a day has logs in the database, add them (locked).
+    // Otherwise seed a row — restoring any draft the user previously typed.
     days.forEach(day => {
       const dateStr = formatDateString(day)
       const dayLogs = dbLogs.filter((l: any) => l.log_date === dateStr)
       const isSaturday = day.getDay() === 6
+      const draft = drafts[dateStr] // may be undefined if no draft exists
 
       if (dayLogs.length > 0) {
         dayLogs.forEach((log: any) => {
@@ -342,26 +407,49 @@ export function EmployeeWorkspace({
           })
         })
       } else {
-        // Add default empty row
+        // Seed an empty row, overlaying any draft content so the user's
+        // in-progress work is restored after a refresh.
         mappedRows.push({
           log_date: dateStr,
-          assigned_tasks: '',
-          actual_work_done: '',
-          hours_worked: isSaturday ? 4 : 8,
-          actual_working_hour: isSaturday ? 4 : 8,
-          completion_percentage: 0.80, // Default 80%
-          done_at_home: false,
-          remark: '',
-          office_entrance_time: '08:30',
-          office_leave_time: isSaturday ? '12:30' : '17:30',
+          assigned_tasks: draft?.assigned_tasks ?? '',
+          actual_work_done: draft?.actual_work_done ?? '',
+          hours_worked: draft?.hours_worked ?? (isSaturday ? 4 : 8),
+          actual_working_hour: draft?.actual_working_hour ?? (isSaturday ? 4 : 8),
+          completion_percentage: draft?.completion_percentage ?? 0.80,
+          done_at_home: draft?.done_at_home ?? false,
+          remark: draft?.remark ?? '',
+          office_entrance_time: draft?.office_entrance_time ?? '08:30',
+          office_leave_time: draft?.office_leave_time ?? (isSaturday ? '12:30' : '17:30'),
           approval_status: 'Pending',
-          isNew: true
+          isNew: true,
         })
       }
     })
 
     setLocalRows(mappedRows)
-  }, [data, days])
+  }, [data, days, userId, mondayStr])
+
+  // Persist unsaved (new) row content to localStorage whenever it changes.
+  // Debounced with a short delay to avoid hammering storage on every keystroke.
+  const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [draftSaved, setDraftSaved] = useState(false)
+
+  useEffect(() => {
+    const hasNewRows = localRows.some(r => !isRowLocked(r))
+    if (!hasNewRows) return
+
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current)
+    draftSaveTimer.current = setTimeout(() => {
+      saveDrafts(userId, mondayStr, localRows)
+      setDraftSaved(true)
+      // Hide the indicator after 2 s
+      setTimeout(() => setDraftSaved(false), 2000)
+    }, 600)
+
+    return () => {
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current)
+    }
+  }, [localRows, userId, mondayStr])
 
   const navigateWeek = (weeks: number) => {
     const newRef = new Date(referenceDate)
@@ -527,6 +615,7 @@ export function EmployeeWorkspace({
       toast.success('Timesheet saved', {
         description: `${json.count} log${json.count !== 1 ? 's' : ''} saved successfully. They are now locked and read-only.`,
       })
+      clearDrafts(userId, mondayStr)
       mutate()
     } catch (err) {
       console.error('[timesheet] save error:', err)
@@ -577,7 +666,9 @@ export function EmployeeWorkspace({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 bg-secondary/60 rounded-xl p-1 border border-border w-fit self-end sm:self-auto">
+          <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
+            <EmployeeReportPanel />
+            <div className="flex items-center gap-1 bg-secondary/60 rounded-xl p-1 border border-border w-fit">
             <button
               onClick={() => setActiveTab('timesheet')}
               className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
@@ -608,6 +699,7 @@ export function EmployeeWorkspace({
               <Settings className="size-4" />
               Settings
             </button>
+          </div>
           </div>
         </div>
       </div>
@@ -650,6 +742,12 @@ export function EmployeeWorkspace({
               >
                 Current Week
               </Button>
+              {draftSaved && (
+                <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 animate-in fade-in duration-300">
+                  <Save className="size-3" />
+                  Draft saved
+                </span>
+              )}
               <Button
                 onClick={handleSave}
                 disabled={saving || isLoading}
