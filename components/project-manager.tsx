@@ -164,7 +164,7 @@ export function ProjectManager() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header row */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-display text-lg font-bold text-foreground">Manage projects</h3>
           <p className="text-sm text-muted-foreground">
@@ -175,7 +175,7 @@ export function ProjectManager() {
         <Button
           onClick={() => setShowAdd((v) => !v)}
           variant={showAdd ? 'outline' : 'default'}
-          className="shrink-0"
+          className="shrink-0 self-start sm:self-auto"
         >
           {showAdd ? (
             <>
@@ -193,33 +193,35 @@ export function ProjectManager() {
       {showAdd && (
         <Card className="border-accent/30 bg-accent/5">
           <CardContent className="pt-5">
-            <form onSubmit={handleAdd} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Project code
-                </label>
-                <Input
-                  id="new-project-code"
-                  placeholder="EF-2407"
-                  value={newCode}
-                  onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                  className="w-36 font-mono uppercase"
-                  required
-                  maxLength={20}
-                />
+            <form onSubmit={handleAdd} className="flex flex-col gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[9rem_1fr]">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Project code
+                  </label>
+                  <Input
+                    id="new-project-code"
+                    placeholder="EF-2407"
+                    value={newCode}
+                    onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                    className="font-mono uppercase"
+                    required
+                    maxLength={20}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Project name</label>
+                  <Input
+                    id="new-project-name"
+                    placeholder="e.g. Westside Office Complex"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    required
+                    maxLength={255}
+                  />
+                </div>
               </div>
-              <div className="flex flex-1 flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Project name</label>
-                <Input
-                  id="new-project-name"
-                  placeholder="e.g. Westside Office Complex"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  required
-                  maxLength={255}
-                />
-              </div>
-              <Button type="submit" disabled={adding} className="shrink-0">
+              <Button type="submit" disabled={adding} className="w-full sm:w-auto sm:self-start">
                 {adding ? (
                   <>
                     <Loader2 className="size-4 animate-spin" /> Creating…

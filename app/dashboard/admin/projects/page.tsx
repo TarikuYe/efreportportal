@@ -127,7 +127,7 @@ function ProjectCreationForm({ onCreated }: { onCreated: () => void }) {
       {/* Code + Name */}
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="proj-code" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <Label htmlFor="proj-code" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Project Code *
           </Label>
           <Input
@@ -135,13 +135,13 @@ function ProjectCreationForm({ onCreated }: { onCreated: () => void }) {
             placeholder="EF-2407"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            className="w-full sm:w-36 font-mono uppercase"
+            className="w-full font-mono uppercase sm:w-36"
             required
             maxLength={20}
           />
         </div>
         <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="proj-name" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <Label htmlFor="proj-name" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Project Name *
           </Label>
           <Input
@@ -158,7 +158,7 @@ function ProjectCreationForm({ onCreated }: { onCreated: () => void }) {
       {/* Client + Contractor */}
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="proj-client" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <Label htmlFor="proj-client" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <Building2 className="size-3" /> Client / Employer
           </Label>
           <Input
@@ -170,7 +170,7 @@ function ProjectCreationForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="proj-contractor" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <Label htmlFor="proj-contractor" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <HardHat className="size-3" /> Contractor
           </Label>
           <Input
@@ -186,7 +186,7 @@ function ProjectCreationForm({ onCreated }: { onCreated: () => void }) {
       {/* Dates */}
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="proj-start" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <Label htmlFor="proj-start" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <Calendar className="size-3" /> Start Date
           </Label>
           <Input
@@ -197,7 +197,7 @@ function ProjectCreationForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="proj-end" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <Label htmlFor="proj-end" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <CalendarCheck className="size-3" /> Est. Completion
           </Label>
           <Input
@@ -210,7 +210,7 @@ function ProjectCreationForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       {/* Submit */}
-      <Button type="submit" disabled={submitting} className="w-full sm:w-auto mt-1">
+      <Button type="submit" disabled={submitting} className="mt-1 w-full shadow-sm">
         {submitting ? (
           <>
             <Loader2 className="size-4 animate-spin" /> Registering…
@@ -284,7 +284,7 @@ function AssignmentDropdown({
         onClick={() => setOpen((v) => !v)}
         className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
           open
-            ? 'border-primary/50 bg-primary/5 text-foreground'
+            ? 'border-primary/50 bg-primary/5 text-foreground shadow-sm'
             : 'border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground'
         }`}
       >
@@ -296,7 +296,7 @@ function AssignmentDropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-border bg-card shadow-xl">
+        <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-xl border border-border bg-card shadow-xl" style={{maxHeight: 'min(52vh, 340px)'}}>
           {/* Search */}
           <div className="border-b border-border p-2">
             <div className="relative">
@@ -368,11 +368,11 @@ function AssignmentDropdown({
                         <Check className="size-2.5" />
                       ) : null}
                     </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block font-medium text-foreground truncate">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium text-foreground">
                         {emp.full_name}
                       </span>
-                      <span className="block text-[10px] text-muted-foreground truncate">
+                      <span className="block truncate text-[10px] text-muted-foreground">
                         {emp.department ?? emp.email}
                       </span>
                     </span>
@@ -412,16 +412,19 @@ function ProjectCard({
   const assignedEmployees = employees.filter((e) => assignedIds.has(e.id))
 
   return (
-    <Card className="flex flex-col gap-0 overflow-hidden border-border shadow-sm transition-shadow hover:shadow-md">
+    <Card className="group flex flex-col gap-0 overflow-hidden border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+      {/* Status accent bar */}
+      <div className={`h-1 w-full ${project.active ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : 'bg-gradient-to-r from-slate-400 to-slate-300'}`} />
+
       {/* Card header band */}
-      <div className="flex items-start justify-between gap-3 bg-secondary/30 px-4 py-3 border-b border-border">
+      <div className="flex items-start justify-between gap-3 border-b border-border bg-secondary/30 px-4 py-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-bold text-primary">
               {project.code}
             </span>
             <span
-              className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                 project.active
                   ? 'bg-emerald-500/12 text-emerald-600'
                   : 'bg-secondary text-muted-foreground'
@@ -430,18 +433,18 @@ function ProjectCard({
               {project.active ? 'Active' : 'Archived'}
             </span>
           </div>
-          <h3 className="mt-1.5 text-sm font-semibold text-foreground leading-snug truncate">
+          <h3 className="mt-1.5 truncate text-sm font-semibold leading-snug text-foreground">
             {project.name}
           </h3>
         </div>
       </div>
 
       {/* Meta details */}
-      <CardContent className="flex flex-col gap-3 p-4 flex-1">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+      <CardContent className="flex flex-1 flex-col gap-3 p-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
           {project.client && (
             <div className="col-span-2">
-              <span className="font-semibold text-muted-foreground flex items-center gap-1">
+              <span className="flex items-center gap-1 font-semibold text-muted-foreground">
                 <Building2 className="size-3" /> Client
               </span>
               <span className="text-foreground">{project.client}</span>
@@ -449,25 +452,25 @@ function ProjectCard({
           )}
           {project.contractor && (
             <div className="col-span-2">
-              <span className="font-semibold text-muted-foreground flex items-center gap-1">
+              <span className="flex items-center gap-1 font-semibold text-muted-foreground">
                 <HardHat className="size-3" /> Contractor
               </span>
               <span className="text-foreground">{project.contractor}</span>
             </div>
           )}
           <div>
-            <span className="font-semibold text-muted-foreground flex items-center gap-1">
+            <span className="flex items-center gap-1 font-semibold text-muted-foreground">
               <Calendar className="size-3" /> Start
             </span>
-            <span className={formatDate(project.start_date) ? 'text-foreground' : 'text-muted-foreground/50 italic'}>
+            <span className={formatDate(project.start_date) ? 'text-foreground' : 'italic text-muted-foreground/50'}>
               {formatDate(project.start_date) ?? 'Not set'}
             </span>
           </div>
           <div>
-            <span className="font-semibold text-muted-foreground flex items-center gap-1">
+            <span className="flex items-center gap-1 font-semibold text-muted-foreground">
               <CalendarCheck className="size-3" /> Est. Completion
             </span>
-            <span className={formatDate(project.estimated_completion) ? 'text-foreground' : 'text-muted-foreground/50 italic'}>
+            <span className={formatDate(project.estimated_completion) ? 'text-foreground' : 'italic text-muted-foreground/50'}>
               {formatDate(project.estimated_completion) ?? 'Not set'}
             </span>
           </div>
@@ -475,7 +478,7 @@ function ProjectCard({
 
         {/* Assigned staff chips */}
         {assignedEmployees.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
             {assignedEmployees.map((emp) => (
               <span
                 key={emp.id}
@@ -551,18 +554,18 @@ export default function AdminProjectsPage() {
   const totalAssigned = new Set(assignments.map((a) => a.employee_id)).size
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-secondary/30 to-background">
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
         {/* ── Page Header ── */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/80 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-center gap-3.5">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
               <FolderKanban className="size-6 text-accent" />
             </div>
-            <div>
-              <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
+            <div className="min-w-0">
+              <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground sm:text-3xl">
                 Project Management Console
               </h1>
               <p className="mt-0.5 text-sm text-muted-foreground">
@@ -572,7 +575,7 @@ export default function AdminProjectsPage() {
           </div>
           <button
             onClick={() => { mutateProjects(); mutateAssignments(); mutateEmployees() }}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground self-start sm:self-auto"
+            className="inline-flex items-center gap-2 self-start rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-secondary hover:text-foreground sm:self-auto"
           >
             <RefreshCw className="size-4" /> Refresh
           </button>
@@ -581,17 +584,23 @@ export default function AdminProjectsPage() {
         {/* ── Summary Chips ── */}
         <div className="mb-8 flex flex-wrap gap-3">
           <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-sm">
-            <FolderOpen className="size-4 text-accent" />
+            <span className="flex size-6 items-center justify-center rounded-full bg-accent/10">
+              <FolderOpen className="size-3.5 text-accent" />
+            </span>
             <span className="font-semibold text-foreground">{projects.length}</span>
             <span className="text-muted-foreground">total projects</span>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-sm">
-            <Check className="size-4 text-emerald-500" />
+            <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10">
+              <Check className="size-3.5 text-emerald-500" />
+            </span>
             <span className="font-semibold text-foreground">{totalActive}</span>
             <span className="text-muted-foreground">active</span>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-sm">
-            <Users className="size-4 text-chart-3" />
+            <span className="flex size-6 items-center justify-center rounded-full bg-chart-3/10">
+              <Users className="size-3.5 text-chart-3" />
+            </span>
             <span className="font-semibold text-foreground">{totalAssigned}</span>
             <span className="text-muted-foreground">staff assigned</span>
           </div>
@@ -599,7 +608,8 @@ export default function AdminProjectsPage() {
 
         {/* ── Employee load error banner ── */}
         {employeesError && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-sm">
+            <AlertTriangle className="size-4 shrink-0" />
             <span className="font-semibold">Could not load employees:</span>
             <span>{employeesError.message}</span>
             <button onClick={() => mutateEmployees()} className="ml-auto text-xs underline hover:no-underline">
@@ -613,10 +623,12 @@ export default function AdminProjectsPage() {
 
           {/* ── LEFT: Project Creation Form ── */}
           <div className="flex flex-col gap-6">
-            <Card className="border-accent/25 bg-accent/4 shadow-sm">
+            <Card className="overflow-hidden border-accent/25 bg-gradient-to-b from-accent/5 to-transparent shadow-sm">
               <CardHeader className="border-b border-border/60 pb-4">
                 <CardTitle className="font-display flex items-center gap-2 text-base">
-                  <Plus className="size-5 text-accent" />
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                    <Plus className="size-4.5" />
+                  </span>
                   Register New Project
                 </CardTitle>
                 <CardDescription>
@@ -629,20 +641,20 @@ export default function AdminProjectsPage() {
             </Card>
 
             {/* Quick stats card */}
-            <Card className="border-border shadow-sm">
-              <CardContent className="py-4 px-5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="px-5 py-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Staff Overview
                 </p>
                 {employeesError ? (
                   <div className="flex flex-col gap-2">
                     <p className="text-xs text-destructive">Failed to load employees: {employeesError.message}</p>
-                    <button onClick={() => mutateEmployees()} className="text-xs text-primary hover:underline self-start">
+                    <button onClick={() => mutateEmployees()} className="self-start text-xs text-primary hover:underline">
                       Retry
                     </button>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2.5">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Total employees</span>
                       <span className="font-semibold text-foreground">{loadingEmployees ? '…' : employees.length}</span>
@@ -672,7 +684,7 @@ export default function AdminProjectsPage() {
                 placeholder="Search projects by code, name, client or contractor…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
+                className="bg-background pl-9 shadow-sm"
               />
               {search && (
                 <button
@@ -685,13 +697,15 @@ export default function AdminProjectsPage() {
             </div>
 
             {loadingProjects ? (
-              <div className="flex items-center justify-center py-20 text-muted-foreground gap-3">
+              <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
                 <Loader2 className="size-7 animate-spin text-primary" />
                 <p className="text-sm">Loading projects…</p>
               </div>
             ) : filteredProjects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
-                <FolderOpen className="size-10 text-muted-foreground/40 mb-3" />
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-background/50 py-20 text-center">
+                <span className="mb-3 flex size-14 items-center justify-center rounded-full bg-secondary/60">
+                  <FolderOpen className="size-7 text-muted-foreground/50" />
+                </span>
                 <p className="text-sm font-medium text-muted-foreground">
                   {search ? 'No projects match your search.' : 'No projects registered yet.'}
                 </p>
@@ -719,7 +733,7 @@ export default function AdminProjectsPage() {
             )}
 
             {search && filteredProjects.length > 0 && (
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="text-center text-xs text-muted-foreground">
                 Showing {filteredProjects.length} of {projects.length} project{projects.length !== 1 ? 's' : ''}
               </p>
             )}

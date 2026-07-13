@@ -666,38 +666,38 @@ export function EmployeeWorkspace({
               </p>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
+          <div className="flex flex-col items-start gap-2 sm:items-end sm:self-auto">
             <EmployeeReportPanel />
-            <div className="flex items-center gap-1 bg-secondary/60 rounded-xl p-1 border border-border w-fit">
+            <div className="flex flex-wrap items-center gap-1 bg-secondary/60 rounded-xl p-1 border border-border w-full sm:w-fit">
             <button
               onClick={() => setActiveTab('timesheet')}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                 activeTab === 'timesheet'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <LayoutDashboard className="size-4" />
-              Timesheet
+              <span className="hidden xs:inline sm:inline">Timesheet</span>
             </button>
             <Link
               href="/dashboard/employee/projects"
-              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-background/60"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-background/60"
             >
               <FolderKanban className="size-4" />
-              My Assigned Projects
+              <span className="hidden xs:inline sm:inline">My Projects</span>
             </Link>
             <button
               id="tab-settings"
               onClick={() => setActiveTab('settings')}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                 activeTab === 'settings'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Settings className="size-4" />
-              Settings
+              <span className="hidden xs:inline sm:inline">Settings</span>
             </button>
           </div>
           </div>
@@ -708,37 +708,37 @@ export function EmployeeWorkspace({
       {activeTab === 'timesheet' && (
         <>
           {/* Week Selector Bar */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigateWeek(-1)}
-                className="flex size-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
                 title="Previous Week"
               >
                 <ChevronLeft className="size-5" />
               </button>
-              <div className="text-center sm:text-left">
-                <span className="text-sm font-semibold text-foreground block leading-tight">
-                  {new Date(monday).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} – {new Date(sunday).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              <div className="min-w-0 flex-1 text-center sm:text-left">
+                <span className="block text-sm font-semibold leading-tight text-foreground">
+                  {new Date(monday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {' '}–{' '}
+                  {new Date(sunday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  Reporting week range
-                </span>
+                <span className="text-xs text-muted-foreground">Reporting week range</span>
               </div>
               <button
                 onClick={() => navigateWeek(1)}
-                className="flex size-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
                 title="Next Week"
               >
                 <ChevronRight className="size-5" />
               </button>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 onClick={() => setReferenceDate(new Date())}
-                className="h-9 px-3"
+                className="h-9 px-3 text-xs sm:text-sm"
               >
                 Current Week
               </Button>
@@ -751,12 +751,12 @@ export function EmployeeWorkspace({
               <Button
                 onClick={handleSave}
                 disabled={saving || isLoading}
-                className="h-9 font-semibold"
+                className="h-9 flex-1 font-semibold sm:flex-none"
               >
                 {saving ? (
-                  <><Loader2 className="size-4 animate-spin mr-1.5" /> Streaming...</>
+                  <><Loader2 className="size-4 animate-spin mr-1.5" /> Saving...</>
                 ) : (
-                  'Save & Submit Timesheet'
+                  <><span className="hidden sm:inline">Save &amp; Submit Timesheet</span><span className="sm:hidden">Submit</span></>
                 )}
               </Button>
             </div>
@@ -771,33 +771,213 @@ export function EmployeeWorkspace({
                   <p className="text-sm">Loading timesheet records...</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table className="min-w-[1200px]">
-                    <TableHeader className="bg-secondary/40 border-b border-border">
-                      <TableRow>
-                        <TableHead className="w-[180px] font-bold text-foreground">Day / Date</TableHead>
-                        <TableHead className="w-[100px] font-bold text-foreground">Office Hours</TableHead>
-                        <TableHead className="w-[180px] font-bold text-foreground">Assigned Tasks *</TableHead>
-                        <TableHead className="w-[180px] font-bold text-foreground">Actual Work Done *</TableHead>
-                        <TableHead className="w-[80px] font-bold text-foreground">Hours</TableHead>
-                        <TableHead className="w-[80px] font-bold text-foreground">Onsite</TableHead>
-                        <TableHead className="w-[140px] font-bold text-foreground">Completion</TableHead>
-                        <TableHead className="w-[80px] text-center font-bold text-foreground">WFG</TableHead>
-                        <TableHead className="w-[130px] font-bold text-foreground">Remark</TableHead>
-                        <TableHead className="w-[90px] text-center font-bold text-foreground">Status</TableHead>
-                        <TableHead className="w-[70px] text-right font-bold text-foreground">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {localRows.map((row, index) => {
-                        const locked = isRowLocked(row)
-                        const isApproved = row.approval_status === 'Approved'
-                        const isReturned = row.approval_status === 'Returned'
-                        const formattedDate = new Date(row.log_date)
-                        const isWeekend = formattedDate.getDay() === 0 || formattedDate.getDay() === 6
-                        const hasComments = row.head_comments && row.head_comments.trim()
+                <>
+                  {/* ── Mobile card view (hidden on lg+) ── */}
+                  <div className="flex flex-col divide-y divide-border lg:hidden">
+                    {localRows.map((row, index) => {
+                      const locked = isRowLocked(row)
+                      const isApproved = row.approval_status === 'Approved'
+                      const isReturned = row.approval_status === 'Returned'
+                      const formattedDate = new Date(row.log_date)
+                      const hasComments = row.head_comments && row.head_comments.trim()
 
-                        return (
+                      return (
+                        <div
+                          key={row.id || `row_${row.log_date}_${index}`}
+                          className={`p-4 ${locked ? 'bg-secondary/10' : ''} ${isApproved ? 'bg-emerald-500/5' : ''}`}
+                        >
+                          {/* Day header row */}
+                          <div className="mb-3 flex items-center justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
+                                {displayDateLabel(formattedDate)}
+                                {locked && <Lock className="size-3 text-muted-foreground shrink-0" />}
+                              </div>
+                              <div className="text-xs text-muted-foreground">{row.log_date}</div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                isApproved ? 'bg-emerald-500/10 text-emerald-600'
+                                : isReturned ? 'bg-rose-500/10 text-rose-600'
+                                : 'bg-amber-500/10 text-amber-600'
+                              }`}>
+                                {row.approval_status}
+                              </span>
+                              {!locked && (
+                                <button
+                                  onClick={() => addSplitTaskRow(row.log_date)}
+                                  className="inline-flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+                                  title="Add Split Task Row"
+                                >
+                                  <Plus className="size-4" />
+                                </button>
+                              )}
+                              {row.id && typeof row.id === 'string' && row.id.startsWith('temp_') && (
+                                <button
+                                  onClick={() => removeRow(index)}
+                                  className="inline-flex size-7 items-center justify-center rounded-md border border-border bg-background text-rose-500 transition-all hover:bg-rose-50 hover:text-rose-600"
+                                  title="Remove Row"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {hasComments && (
+                            <div className="mb-3 text-xs border-l-2 border-rose-400 bg-rose-50/50 dark:bg-rose-950/20 px-2 py-1 text-rose-600 dark:text-rose-400 rounded-r">
+                              <span className="font-semibold block">Head comments:</span>
+                              {row.head_comments}
+                            </div>
+                          )}
+
+                          {/* Office hours */}
+                          <div className="mb-3 grid grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Office In</label>
+                              <input type="time" value={row.office_entrance_time}
+                                onChange={(e) => handleInputChange(index, 'office_entrance_time', e.target.value)}
+                                disabled={locked}
+                                className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Office Out</label>
+                              <input type="time" value={row.office_leave_time}
+                                onChange={(e) => handleInputChange(index, 'office_leave_time', e.target.value)}
+                                disabled={locked}
+                                className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Assigned Tasks */}
+                          <div className="mb-3 flex flex-col gap-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Assigned Tasks *</label>
+                            <textarea value={row.assigned_tasks}
+                              onChange={(e) => handleInputChange(index, 'assigned_tasks', e.target.value)}
+                              disabled={locked} placeholder="Tasks assigned..." rows={2}
+                              className="w-full min-h-[56px] resize-y rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
+                            />
+                            {!locked && (
+                              <button type="button" onClick={() => correctFieldText(index, 'assigned_tasks')}
+                                disabled={correctingKey === `${index}-assigned_tasks`}
+                                className="self-end flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 disabled:opacity-50 transition">
+                                {correctingKey === `${index}-assigned_tasks` ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                                Fix with AI
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Actual Work Done */}
+                          <div className="mb-3 flex flex-col gap-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Actual Work Done *</label>
+                            <textarea value={row.actual_work_done}
+                              onChange={(e) => handleInputChange(index, 'actual_work_done', e.target.value)}
+                              disabled={locked} placeholder="Work accomplished..." rows={2}
+                              className="w-full min-h-[56px] resize-y rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
+                            />
+                            {!locked && (
+                              <button type="button" onClick={() => correctFieldText(index, 'actual_work_done')}
+                                disabled={correctingKey === `${index}-actual_work_done`}
+                                className="self-end flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 disabled:opacity-50 transition">
+                                {correctingKey === `${index}-actual_work_done` ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                                Fix with AI
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Hours / Onsite / Completion / WFG row */}
+                          <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Hours</label>
+                              <input type="number" value={row.hours_worked}
+                                onChange={(e) => handleInputChange(index, 'hours_worked', parseFloat(e.target.value) || 0)}
+                                disabled={locked} min="0" max="24" step="0.25"
+                                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-center text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Onsite Hrs</label>
+                              <input type="number" value={row.actual_working_hour}
+                                onChange={(e) => handleInputChange(index, 'actual_working_hour', parseFloat(e.target.value) || 0)}
+                                disabled={locked} min="0" max="24" step="0.25"
+                                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-center text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                Completion: <span className={getPercentageColor(row.completion_percentage)}>{Math.round(row.completion_percentage * 100)}%</span>
+                              </label>
+                              <input type="range" min="0" max="1" step="0.05"
+                                value={row.completion_percentage}
+                                onChange={(e) => handleInputChange(index, 'completion_percentage', parseFloat(e.target.value))}
+                                disabled={locked}
+                                className={`w-full cursor-pointer h-1.5 rounded-lg bg-secondary focus:outline-none disabled:cursor-not-allowed ${getSliderTrackClass(row.completion_percentage)}`}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">WFG</label>
+                              <div className="flex items-center justify-center h-8">
+                                <input type="checkbox" checked={row.done_at_home}
+                                  onChange={(e) => handleInputChange(index, 'done_at_home', e.target.checked)}
+                                  disabled={locked}
+                                  className="size-4 rounded border-border bg-background text-primary focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Remark */}
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Remark</label>
+                            <input type="text" value={row.remark}
+                              onChange={(e) => handleInputChange(index, 'remark', e.target.value)}
+                              disabled={locked} placeholder="Notes..."
+                              className="h-8 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition"
+                            />
+                            {!locked && row.remark.trim() && (
+                              <button type="button" onClick={() => correctFieldText(index, 'remark')}
+                                disabled={correctingKey === `${index}-remark`}
+                                className="self-end flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 disabled:opacity-50 transition">
+                                {correctingKey === `${index}-remark` ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                                Fix
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* ── Desktop table view (hidden below lg) ── */}
+                  <div className="hidden overflow-x-auto lg:block">
+                    <Table className="min-w-[1200px]">
+                      <TableHeader className="bg-secondary/40 border-b border-border">
+                        <TableRow>
+                          <TableHead className="w-[180px] font-bold text-foreground">Day / Date</TableHead>
+                          <TableHead className="w-[100px] font-bold text-foreground">Office Hours</TableHead>
+                          <TableHead className="w-[180px] font-bold text-foreground">Assigned Tasks *</TableHead>
+                          <TableHead className="w-[180px] font-bold text-foreground">Actual Work Done *</TableHead>
+                          <TableHead className="w-[80px] font-bold text-foreground">Hours</TableHead>
+                          <TableHead className="w-[80px] font-bold text-foreground">Onsite</TableHead>
+                          <TableHead className="w-[140px] font-bold text-foreground">Completion</TableHead>
+                          <TableHead className="w-[80px] text-center font-bold text-foreground">WFG</TableHead>
+                          <TableHead className="w-[130px] font-bold text-foreground">Remark</TableHead>
+                          <TableHead className="w-[90px] text-center font-bold text-foreground">Status</TableHead>
+                          <TableHead className="w-[70px] text-right font-bold text-foreground">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {localRows.map((row, index) => {
+                          const locked = isRowLocked(row)
+                          const isApproved = row.approval_status === 'Approved'
+                          const isReturned = row.approval_status === 'Returned'
+                          const formattedDate = new Date(row.log_date)
+                          const isWeekend = formattedDate.getDay() === 0 || formattedDate.getDay() === 6
+                          const hasComments = row.head_comments && row.head_comments.trim()
+
+                          return (
                           <TableRow
                             key={row.id || `row_${row.log_date}_${index}`}
                             className={`${isWeekend ? 'bg-secondary/15' : ''} ${locked ? 'bg-secondary/10' : ''} ${isApproved ? 'bg-emerald-500/5' : ''} transition-colors border-b border-border/60 align-top`}
@@ -1061,11 +1241,12 @@ export function EmployeeWorkspace({
                               </div>
                             </TableCell>
                           </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

@@ -221,7 +221,7 @@ export function SubmissionForm({
               setDragging(false)
               pickFile(e.dataTransfer.files?.[0] ?? null)
             }}
-            className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors ${
+            className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors sm:py-10 ${
               dragging
                 ? 'border-accent bg-accent/5'
                 : 'border-border bg-secondary/40 hover:border-accent/60'

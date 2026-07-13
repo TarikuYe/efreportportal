@@ -8,38 +8,66 @@ import {
   ArrowRight,
   Compass,
   CheckCircle2,
+  ClipboardList,
+  FolderKanban,
+  BarChart3,
+  Mail,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
 const features = [
   {
-    icon: ShieldCheck,
-    title: 'Secure & private',
-    desc: 'Files are stored in encrypted, access-controlled storage. Only the review team can retrieve them.',
+    icon: ClipboardList,
+    title: 'Weekly Timesheets',
+    desc: 'Engineers log daily tasks, hours, completion percentages, and office entry/exit times. Supervisors review, approve, or return entries with comments.',
   },
   {
-    icon: Clock,
-    title: 'Automated reminders',
-    desc: 'Monthly email reminders keep every project team on schedule for their reporting period.',
+    icon: FolderKanban,
+    title: 'Project Records',
+    desc: 'Track correspondence registers, contractor bonds, Extension of Time (EOT) claims, and project assignments — all in one place.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Performance Evaluations',
+    desc: 'Score employees across six weighted dimensions — technical competence, productivity, punctuality, communication, reporting, and adaptability.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Role-Based Access',
+    desc: 'Three distinct workspaces: engineers log and track their own work, registrars manage records and exports, DGMs get a real-time analytics overview.',
+  },
+  {
+    icon: Mail,
+    title: 'Automated Reminders',
+    desc: 'Scheduled email reminders keep every team member on schedule. Overdue items surface automatically so nothing slips through.',
   },
   {
     icon: FileStack,
-    title: 'Full audit trail',
-    desc: 'Every submission is timestamped and tracked through review to approval on the dashboard.',
+    title: 'Full Audit Trail',
+    desc: 'Every record is timestamped from creation to approval. Export to Excel at any time for offline review, reporting, or compliance.',
   },
 ]
 
 const stats = [
-  { value: '100%', label: 'Encrypted storage' },
-  { value: '24/7', label: 'Submission access' },
-  { value: '0', label: 'Missed deadlines*' },
+  { value: '3', label: 'Role-based workspaces' },
+  { value: '24/7', label: 'Secure access' },
+  { value: '100%', label: 'Audit-tracked records' },
 ]
 
 const steps = [
-  'Sign in with your administrator-assigned account',
-  'Upload your periodic report and supporting files',
-  'Track review status in real time on your dashboard',
+  {
+    role: 'Engineers',
+    text: 'Sign in and log your weekly tasks, hours worked, and daily progress directly in your workspace.',
+  },
+  {
+    role: 'Registrars',
+    text: 'Manage correspondence, bonds, EOT claims, and performance evaluations from the admin dashboard.',
+  },
+  {
+    role: 'DGM',
+    text: 'Access the analytics control tower for a live overview of all employees, projects, and submissions.',
+  },
 ]
 
 export default async function HomePage() {
@@ -66,7 +94,7 @@ export default async function HomePage() {
               <span className="text-foreground">EF</span>{' '}
               <span className="text-accent">A&E</span>
               <span className="block text-[11px] font-medium tracking-wide text-muted-foreground">
-                Report Portal
+                Management Portal
               </span>
             </span>
           </Link>
@@ -97,14 +125,15 @@ export default async function HomePage() {
           <div className="relative mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
             <div className="mx-auto max-w-2xl text-center">
               <span className="inline-flex w-fit items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/5 px-3 py-1 text-xs font-medium text-primary-foreground/80">
-                EF Architect &amp; Engineering
+                EF Architects &amp; Engineers Consulting PLC
               </span>
               <h1 className="mt-6 text-balance font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-                Submit your project reports with confidence
+                Internal management portal for your entire team
               </h1>
               <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-primary-foreground/75 sm:text-lg">
-                The official portal for submitting periodic architecture and engineering reports.
-                Sign in to upload documents, track review status, and never miss a deadline.
+                One platform for weekly timesheets, correspondence tracking, contractor bonds, EOT
+                claims, performance evaluations, and project management — built for EF A&amp;E staff
+                from engineer to DGM.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link
@@ -117,7 +146,7 @@ export default async function HomePage() {
             </div>
 
             {/* Stats strip */}
-            <div className="mx-auto mt-16 grid max-w-2xl grid-cols-3 gap-6 border-t border-primary-foreground/15 pt-8">
+            <div className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-6 border-t border-primary-foreground/15 pt-8 sm:grid-cols-3">
               {stats.map((s) => (
                 <div key={s.label} className="text-center">
                   <div className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
@@ -136,16 +165,16 @@ export default async function HomePage() {
         <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
           <div className="mx-auto max-w-2xl text-center">
             <span className="text-xs font-semibold uppercase tracking-wider text-accent">
-              Why teams use the portal
+              Everything in one place
             </span>
             <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-foreground">
-              How the portal works
+              What the portal covers
             </h2>
             <p className="mt-2 text-muted-foreground">
-              A secure, streamlined workflow for project report submissions.
+              A complete management system built around how EF A&amp;E teams actually work.
             </p>
           </div>
-          <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <Card
                 key={f.title}
@@ -167,32 +196,35 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* Process steps */}
+        {/* Role-based access breakdown */}
         <section className="border-y border-border bg-secondary/30">
           <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-24">
             <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
               <div>
                 <span className="text-xs font-semibold uppercase tracking-wider text-accent">
-                  Simple process
+                  Tailored by role
                 </span>
                 <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-foreground">
-                  Three steps to a completed submission
+                  Your workspace, your tools
                 </h2>
                 <p className="mt-3 max-w-md text-muted-foreground">
-                  No spreadsheets, no lost email attachments — just a clear path from upload to
-                  approval.
+                  Sign in once and the portal takes you straight to the right workspace. No manual
+                  navigation, no irrelevant menus — just the tools for your role.
                 </p>
               </div>
               <ol className="space-y-4">
                 {steps.map((step, i) => (
                   <li
-                    key={step}
+                    key={step.role}
                     className="flex items-start gap-4 rounded-lg border border-border/60 bg-background p-4 shadow-sm"
                   >
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground">
                       {i + 1}
                     </span>
-                    <span className="pt-1 text-sm leading-relaxed text-foreground">{step}</span>
+                    <span className="pt-1 text-sm leading-relaxed text-foreground">
+                      <span className="font-semibold">{step.role} — </span>
+                      {step.text}
+                    </span>
                   </li>
                 ))}
               </ol>
@@ -206,14 +238,18 @@ export default async function HomePage() {
           <div className="relative mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 lg:py-20">
             <CheckCircle2 className="mx-auto size-8 text-accent" />
             <h2 className="mt-4 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-              Ready to submit your report?
+              Ready to get started?
             </h2>
             <p className="mx-auto mt-2 max-w-md text-primary-foreground/75">
-              Sign in with your administrator-assigned account to access your workspace.
+              Use your administrator-assigned credentials to access your workspace. Your role
+              determines where you land automatically.
             </p>
             <div className="mt-7">
               <Link href="/auth/signin">
-                <Button size="lg" className="shadow-md">
+                <Button
+                  size="lg"
+                  className="bg-accent text-accent-foreground shadow-md transition-all duration-200 hover:scale-[1.03] hover:bg-accent/90 hover:shadow-xl"
+                >
                   Sign in to your account
                 </Button>
               </Link>
@@ -224,8 +260,8 @@ export default async function HomePage() {
 
       <footer className="border-t border-border bg-secondary/40">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:px-6">
-          <p>© {new Date().getFullYear()} EF Architect &amp; Engineering. All rights reserved.</p>
-          <p>Secure report submission portal</p>
+          <p>© {new Date().getFullYear()} EF Architects &amp; Engineers Consulting PLC. All rights reserved.</p>
+          <p>Internal management portal</p>
         </div>
       </footer>
     </div>

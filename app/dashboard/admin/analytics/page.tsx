@@ -275,30 +275,34 @@ DGM Office — EF Architects and Engineers Consulting PLC`
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-secondary/30 to-background">
       <SiteHeader />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
         
         {/* Header Block */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/80 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-center gap-3.5">
+            <div className="relative flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
               <TrendingUp className="size-6 text-accent" />
+              <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-background">
+                <span className="size-1.5 rounded-full bg-white" />
+              </span>
             </div>
             <div>
-              <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
+              <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
                 DGM Control Tower
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 Executive overview of live engineering trackers, timelines, and operational risks.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
             <button
               onClick={() => { mutate(); mutatePendingLogs(); }}
               disabled={isLoading}
-              className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+              className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-secondary hover:text-foreground"
+              title="Refresh data"
             >
               {isLoading ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -310,18 +314,18 @@ DGM Office — EF Architects and Engineers Consulting PLC`
               <Button
                 onClick={handleExport}
                 disabled={downloading}
-                className="font-bold flex items-center gap-2 h-9 px-4"
+                className="flex h-9 items-center gap-2 px-4 font-bold shadow-sm"
               >
                 {downloading ? (
                   <><Loader2 className="size-4 animate-spin" /> Exporting...</>
                 ) : (
-                  <><Download className="size-4" /> Export Master Log</>
+                  <><Download className="size-4" /><span className="hidden sm:inline">Export Master Log</span><span className="sm:hidden">Export</span></>
                 )}
               </Button>
               {metrics.unverifiedLogsCount > 0 && (
-                <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1 mt-1">
+                <span className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-rose-500">
                   <AlertTriangle className="size-3 text-rose-500" />
-                  Warning: {metrics.unverifiedLogsCount} unverified records will be omitted from the Master Log
+                  {metrics.unverifiedLogsCount} unverified records will be omitted
                 </span>
               )}
             </div>
@@ -329,70 +333,73 @@ DGM Office — EF Architects and Engineers Consulting PLC`
         </div>
 
         {error && (
-          <div className="mb-6 flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            <AlertCircle className="size-4 mt-0.5 shrink-0" />
+          <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-sm">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <div>
-              <span className="font-semibold block">Failed to load analytics:</span>
+              <span className="block font-semibold">Failed to load analytics:</span>
               {error.message || 'Please check your connection and configuration.'}
             </div>
           </div>
         )}
 
         {/* ── CORE ANALYTICS BANNER ── */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           
           {/* Letters Widget */}
-          <Card className="shadow-sm border-border relative overflow-hidden">
-            <div className="absolute right-0 top-0 translate-x-1/3 -translate-y-1/3 size-28 rounded-full bg-blue-500/5 blur-xl" />
+          <Card className="group relative overflow-hidden border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-blue-400" />
+            <div className="absolute right-0 top-0 size-32 -translate-y-1/3 translate-x-1/3 rounded-full bg-blue-500/5 blur-2xl transition-all group-hover:bg-blue-500/10" />
             <CardContent className="flex items-center justify-between p-6">
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Correspondence Mailbox</span>
-                <span className="font-display text-4xl font-extrabold text-foreground mt-1">
+                <span className="mt-1 font-display text-4xl font-extrabold text-foreground">
                   {metrics.totalLetters}
                 </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  <strong className="text-rose-500 font-semibold">{metrics.overdueLetters}</strong> Overdue Actions
+                <span className="mt-1 text-xs text-muted-foreground">
+                  <strong className="font-semibold text-rose-500">{metrics.overdueLetters}</strong> Overdue Actions
                 </span>
               </div>
-              <span className="flex size-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
+              <span className="flex size-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 shadow-sm ring-1 ring-blue-500/10">
                 <FileText className="size-6" />
               </span>
             </CardContent>
           </Card>
 
           {/* Bonds Widget */}
-          <Card className="shadow-sm border-border relative overflow-hidden">
-            <div className="absolute right-0 top-0 translate-x-1/3 -translate-y-1/3 size-28 rounded-full bg-emerald-500/5 blur-xl" />
+          <Card className="group relative overflow-hidden border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-emerald-400" />
+            <div className="absolute right-0 top-0 size-32 -translate-y-1/3 translate-x-1/3 rounded-full bg-emerald-500/5 blur-2xl transition-all group-hover:bg-emerald-500/10" />
             <CardContent className="flex items-center justify-between p-6">
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Guarantee Bonds</span>
-                <span className="font-display text-4xl font-extrabold text-foreground mt-1">
+                <span className="mt-1 font-display text-4xl font-extrabold text-foreground">
                   {metrics.activeBonds}
                 </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  <strong className="text-foreground font-semibold">{metrics.expiredOrReleasedBonds}</strong> Released/Expired
+                <span className="mt-1 text-xs text-muted-foreground">
+                  <strong className="font-semibold text-foreground">{metrics.expiredOrReleasedBonds}</strong> Released/Expired
                 </span>
               </div>
-              <span className="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+              <span className="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 shadow-sm ring-1 ring-emerald-500/10">
                 <Briefcase className="size-6" />
               </span>
             </CardContent>
           </Card>
 
           {/* Commitment Widget */}
-          <Card className="shadow-sm border-border relative overflow-hidden">
-            <div className="absolute right-0 top-0 translate-x-1/3 -translate-y-1/3 size-28 rounded-full bg-purple-500/5 blur-xl" />
+          <Card className="group relative overflow-hidden border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 to-purple-400" />
+            <div className="absolute right-0 top-0 size-32 -translate-y-1/3 translate-x-1/3 rounded-full bg-purple-500/5 blur-2xl transition-all group-hover:bg-purple-500/10" />
             <CardContent className="flex items-center justify-between p-6">
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Engineer Commitment</span>
-                <span className="font-display text-4xl font-extrabold text-foreground mt-1">
+                <span className="mt-1 font-display text-4xl font-extrabold text-foreground">
                   {metrics.commitmentAverage}%
                 </span>
-                <span className="text-xs text-muted-foreground mt-1">
+                <span className="mt-1 text-xs text-muted-foreground">
                   Average completion rate
                 </span>
               </div>
-              <span className="flex size-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600">
+              <span className="flex size-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 shadow-sm ring-1 ring-purple-500/10">
                 <Percent className="size-6" />
               </span>
             </CardContent>
@@ -401,25 +408,31 @@ DGM Office — EF Architects and Engineers Consulting PLC`
         </div>
 
         {/* ── PENDING STRUCTURAL AUDIT QUEUE ── */}
-        <Card className="shadow-sm border-border mb-8">
-          <CardHeader className="border-b border-border bg-slate-500/5 py-4 px-6 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="font-display text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <ShieldCheck className="size-5 text-primary" />
-                PENDING STRUCTURAL AUDIT QUEUE
-              </CardTitle>
-              <CardDescription className="text-slate-600/80 dark:text-slate-400 text-xs mt-0.5">
-                Review, verify, and approve daily work logs before they are committed to the Master Excel Log.
-              </CardDescription>
+        <Card className="mb-8 overflow-hidden border-border/60 shadow-sm">
+          <CardHeader className="flex flex-col gap-3 border-b border-border bg-gradient-to-r from-slate-500/5 to-transparent px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ShieldCheck className="size-5" />
+              </span>
+              <div>
+                <CardTitle className="font-display text-base font-bold text-foreground">
+                  Pending Structural Audit Queue
+                </CardTitle>
+                <CardDescription className="mt-0.5 text-xs text-muted-foreground">
+                  Review, verify, and approve daily work logs before they are committed to the Master Excel Log.
+                </CardDescription>
+              </div>
             </div>
-            <span className="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full">
+            <span className="shrink-0 self-start rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary sm:self-auto">
               {(pendingLogs || []).length} logs pending
             </span>
           </CardHeader>
           <CardContent className="p-0">
             {(!pendingLogs || pendingLogs.length === 0) ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Inbox className="size-8 mb-2" />
+              <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
+                <span className="mb-3 flex size-12 items-center justify-center rounded-full bg-secondary/60">
+                  <Inbox className="size-6" />
+                </span>
                 <p className="text-sm font-medium">Audit queue is empty. All employee logs are reviewed.</p>
               </div>
             ) : (() => {
@@ -448,43 +461,43 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                     const totalHours = logs.reduce((sum: number, log: any) => sum + (Number(log.hours_worked) || 0), 0)
 
                     return (
-                      <div key={employee.email} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-secondary/5 transition-all">
+                      <div key={employee.email} className="flex flex-col justify-between gap-4 p-4 transition-all hover:bg-secondary/10 sm:p-5 md:flex-row md:items-center">
                         {/* Employee and Info card in a single horizontal layout */}
-                        <div className="flex-1 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                        <div className="flex flex-1 flex-col items-start gap-4 sm:flex-row sm:items-center">
                           {/* Employee Avatar Badge and Profile */}
-                          <div className="flex items-center gap-4 shrink-0">
-                            <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm border border-primary/20">
+                          <div className="flex shrink-0 items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 text-sm font-bold text-primary ring-2 ring-primary/10 sm:size-11">
                               {initials}
                             </div>
-                            <div>
-                              <div className="font-semibold text-base text-foreground leading-snug">{employee.full_name || 'Anonymous'}</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">{employee.email || 'no-email@efae.com'}</div>
-                              <div className="text-[10px] text-primary/80 font-bold uppercase tracking-wider mt-1 px-1.5 py-0.5 bg-primary/5 border border-primary/10 rounded-md inline-block">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold leading-snug text-foreground sm:text-base">{employee.full_name || 'Anonymous'}</div>
+                              <div className="truncate text-xs text-muted-foreground">{employee.email || 'no-email@efae.com'}</div>
+                              <div className="mt-1 inline-block rounded-md border border-primary/10 bg-primary/5 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary/80">
                                 {employee.department || 'Procurement & Contract'}
                               </div>
                             </div>
                           </div>
 
                           {/* Divider */}
-                          <div className="hidden sm:block h-12 w-px bg-border shrink-0" />
+                          <div className="hidden h-12 w-px shrink-0 bg-border sm:block" />
 
                           {/* Summary Chips */}
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-3 py-1.5 rounded-full border border-indigo-100 dark:border-indigo-900/50">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300">
                               {logs.length} {logs.length === 1 ? 'log' : 'logs'} pending
                             </span>
-                            <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-900/50">
+                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
                               {totalHours} hrs total
                             </span>
                           </div>
                         </div>
 
                         {/* View Details Button */}
-                        <div className="shrink-0 flex items-center justify-end">
+                        <div className="flex shrink-0 items-center">
                           <Button
                             size="sm"
                             onClick={() => setSelectedEmployeeEmail(employee.email)}
-                            className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold flex items-center gap-2 h-9 text-xs px-4 rounded-lg shadow-sm"
+                            className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/95 sm:w-auto"
                           >
                             <Eye className="size-4" /> View Details
                           </Button>
@@ -501,19 +514,21 @@ DGM Office — EF Architects and Engineers Consulting PLC`
 
         {/* inline dialog / text modal for Return to Sender comments */}
         {commentingLogId !== null && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-            <Card className="w-full max-w-md shadow-lg border-border">
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4">
+            <Card className="w-full max-w-md overflow-hidden rounded-t-2xl border-border/60 shadow-xl sm:rounded-2xl">
 
-              <CardHeader className="border-b border-border bg-rose-50/5">
-                <CardTitle className="font-display text-base font-bold text-rose-800 flex items-center gap-2">
-                  <XCircle className="size-5 text-rose-600" />
+              <CardHeader className="border-b border-border bg-gradient-to-r from-rose-50 to-transparent dark:from-rose-950/20">
+                <CardTitle className="flex items-center gap-2 font-display text-base font-bold text-rose-800 dark:text-rose-300">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/50">
+                    <XCircle className="size-4.5 text-rose-600" />
+                  </span>
                   Return Work Log to Sender
                 </CardTitle>
                 <CardDescription className="text-xs">
                   Specify feedback for the engineer to correct their log details.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4 space-y-4">
+              <CardContent className="space-y-4 pt-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="comments" className="text-xs font-bold text-foreground">DGM Feedback Comments *</Label>
                   <textarea
@@ -522,7 +537,7 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Enter instructions on what to fix (e.g. Specify project tasks completed, correct working hours value...)"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     required
                   />
                 </div>
@@ -542,7 +557,7 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                       const log = pendingLogs.find((l: any) => l.id === commentingLogId)
                       if (log) handleReturn(log, commentText)
                     }}
-                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold h-9 px-4 text-xs"
+                    className="h-9 bg-rose-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-rose-700"
                   >
                     Submit Feedback
                   </Button>
@@ -585,47 +600,47 @@ DGM Office — EF Architects and Engineers Consulting PLC`
               {/* Clicking the backdrop will close the sheet */}
               <div className="absolute inset-0 -z-10" onClick={() => setSelectedEmployeeEmail(null)} />
               
-              <div className="w-full max-w-4xl bg-background border-l border-border h-full flex flex-col shadow-2xl relative animate-in slide-in-from-right duration-300">
+              <div className="relative flex h-full w-full flex-col border-l border-border bg-background shadow-2xl animate-in slide-in-from-right duration-300 sm:max-w-4xl">
                 {/* Header */}
-                <div className="p-6 border-b border-border bg-slate-500/5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-base border border-primary/20">
+                <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-slate-500/5 to-transparent p-4 sm:p-6">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 text-sm font-bold text-primary ring-2 ring-primary/10 sm:size-12">
                       {initials}
                     </div>
-                    <div>
-                      <h3 className="font-display font-extrabold text-lg text-foreground flex items-center gap-2">
-                        {employee.full_name || 'Anonymous'}
-                        <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
+                    <div className="min-w-0">
+                      <h3 className="flex flex-wrap items-center gap-2 font-display text-base font-extrabold text-foreground sm:text-lg">
+                        <span className="truncate">{employee.full_name || 'Anonymous'}</span>
+                        <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                           {logs.length} pending
                         </span>
                       </h3>
-                      <p className="text-xs text-muted-foreground">{employee.email || 'no-email@efae.com'} &middot; {employee.department || 'General Staff'}</p>
+                      <p className="truncate text-xs text-muted-foreground">{employee.email || 'no-email@efae.com'} &middot; {employee.department || 'General Staff'}</p>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setSelectedEmployeeEmail(null)}
-                    className="rounded-full hover:bg-secondary/40 h-9 w-9 text-muted-foreground hover:text-foreground"
+                    className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
                   >
                     <X className="size-5" />
                   </Button>
                 </div>
 
                 {/* Logs List */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="flex-1 space-y-6 overflow-y-auto p-6">
                   {logs.map((log: any) => (
-                    <Card key={log.id} className="border border-border/80 shadow-sm overflow-hidden hover:border-border transition-all">
-                      <div className="bg-slate-500/5 px-4 py-3 border-b border-border/60 flex flex-wrap items-center justify-between gap-3">
+                    <Card key={log.id} className="overflow-hidden border border-border/80 shadow-sm transition-all hover:border-border">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-slate-500/5 px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-[10px] font-extrabold uppercase">
+                          <span className="inline-flex items-center rounded bg-blue-100 px-2 py-0.5 text-[10px] font-extrabold uppercase text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                             {log.project_code || 'General'}
                           </span>
                           <span className="text-xs font-semibold text-foreground">
                             {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
                         </div>
-                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${
+                        <span className={`rounded px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                           log.approval_status === 'Returned'
                             ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                             : log.approval_status === 'Approved'
@@ -636,37 +651,37 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                         </span>
                       </div>
 
-                      <CardContent className="p-4 space-y-4">
+                      <CardContent className="space-y-4 p-4">
                         {/* Tasks Details */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                          <div className="bg-secondary/10 p-3 rounded-lg border border-border/30">
-                            <span className="font-extrabold text-[9px] uppercase tracking-wider text-muted-foreground block mb-1">Assigned Tasks</span>
-                            <p className="text-foreground whitespace-pre-wrap leading-relaxed">{log.assigned_tasks}</p>
+                        <div className="grid grid-cols-1 gap-4 text-xs md:grid-cols-2">
+                          <div className="rounded-lg border border-border/30 bg-secondary/10 p-3">
+                            <span className="mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Assigned Tasks</span>
+                            <p className="whitespace-pre-wrap leading-relaxed text-foreground">{log.assigned_tasks}</p>
                           </div>
-                          <div className="bg-secondary/10 p-3 rounded-lg border border-border/30">
-                            <span className="font-extrabold text-[9px] uppercase tracking-wider text-muted-foreground block mb-1">Actual Work Done</span>
-                            <p className="text-foreground whitespace-pre-wrap leading-relaxed">{log.actual_work_done}</p>
+                          <div className="rounded-lg border border-border/30 bg-secondary/10 p-3">
+                            <span className="mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Actual Work Done</span>
+                            <p className="whitespace-pre-wrap leading-relaxed text-foreground">{log.actual_work_done}</p>
                           </div>
                         </div>
 
                         {/* Metrics and Actions Bar */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2 border-t border-border/40">
+                        <div className="flex flex-col items-stretch justify-between gap-4 border-t border-border/40 pt-2 sm:flex-row sm:items-center">
                           {/* Metrics */}
                           <div className="flex flex-wrap gap-2">
-                            <div className="flex items-center gap-1.5 bg-secondary/30 px-2 py-1 rounded text-xs border border-border/50">
+                            <div className="flex items-center gap-1.5 rounded border border-border/50 bg-secondary/30 px-2 py-1 text-xs">
                               <span className="text-muted-foreground">Worked:</span>
-                              <strong className="text-foreground font-semibold">{log.hours_worked} hrs</strong>
+                              <strong className="font-semibold text-foreground">{log.hours_worked} hrs</strong>
                             </div>
-                            <div className="flex items-center gap-1.5 bg-secondary/30 px-2 py-1 rounded text-xs border border-border/50">
+                            <div className="flex items-center gap-1.5 rounded border border-border/50 bg-secondary/30 px-2 py-1 text-xs">
                               <span className="text-muted-foreground">Onsite:</span>
-                              <strong className="text-foreground font-semibold">{log.actual_working_hour} hrs</strong>
+                              <strong className="font-semibold text-foreground">{log.actual_working_hour} hrs</strong>
                             </div>
-                            <div className="flex items-center gap-1.5 bg-secondary/30 px-2 py-1 rounded text-xs border border-border/50">
+                            <div className="flex items-center gap-1.5 rounded border border-border/50 bg-secondary/30 px-2 py-1 text-xs">
                               <span className="text-muted-foreground">Comp:</span>
-                              <strong className="text-foreground font-semibold">{Math.round(log.completion_percentage * 100)}%</strong>
+                              <strong className="font-semibold text-foreground">{Math.round(log.completion_percentage * 100)}%</strong>
                             </div>
                             {log.done_at_home && (
-                              <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-1 rounded border border-purple-100 dark:border-purple-900/20">Home Entry</span>
+                              <span className="rounded border border-purple-100 bg-purple-50 px-1.5 py-1 text-[10px] font-semibold text-purple-600 dark:border-purple-900/20 dark:bg-purple-950/30">Home Entry</span>
                             )}
                           </div>
 
@@ -675,7 +690,7 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                             <Button
                               size="sm"
                               onClick={() => handleApprove(log)}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 h-8 text-xs px-3 shadow-sm rounded-md"
+                              className="flex h-8 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
                             >
                               <CheckCircle2 className="size-3.5" /> Approve & Lock
                             </Button>
@@ -686,7 +701,7 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                                 setCommentingLogId(log.id)
                                 setCommentText(log.head_comments || '')
                               }}
-                              className="border-rose-200 hover:bg-rose-50 hover:text-rose-600 text-rose-500 font-bold flex items-center gap-1.5 h-8 text-xs px-3 rounded-md"
+                              className="flex h-8 items-center gap-1.5 rounded-md border-rose-200 px-3 text-xs font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-600"
                             >
                               <XCircle className="size-3.5" /> Return to Sender
                             </Button>
@@ -706,48 +721,52 @@ DGM Office — EF Architects and Engineers Consulting PLC`
         <div className="grid gap-6 lg:grid-cols-2">
           
           {/* Critical Bond Expiry (Red Alerts) */}
-          <Card className="shadow-sm border-border">
-            <CardHeader className="border-b border-border bg-rose-500/5 flex flex-row items-center gap-2 py-4 px-6">
-              <AlertTriangle className="size-5 text-rose-500 shrink-0" />
+          <Card className="overflow-hidden border-border/60 shadow-sm">
+            <CardHeader className="flex flex-row items-center gap-3 border-b border-border bg-gradient-to-r from-rose-500/5 to-transparent px-6 py-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 text-rose-500">
+                <AlertTriangle className="size-5" />
+              </span>
               <div>
-                <CardTitle className="font-display text-base font-bold text-rose-800">
-                  CRITICAL BOND EXPIRED ALERTS
+                <CardTitle className="font-display text-base font-bold text-rose-800 dark:text-rose-300">
+                  Critical Bond Expired Alerts
                 </CardTitle>
-                <CardDescription className="text-rose-600/80 text-xs">
+                <CardDescription className="text-xs text-rose-600/80 dark:text-rose-400/70">
                   Active current date exceeds bond expiry limits
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="p-0 max-h-[380px] overflow-y-auto">
+            <CardContent className="max-h-[380px] overflow-y-auto p-0">
               {(!alerts?.criticalExpiredBonds || alerts.criticalExpiredBonds.length === 0) ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
-                  <Inbox className="size-8" />
+                <div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
+                  <span className="flex size-12 items-center justify-center rounded-full bg-secondary/60">
+                    <Inbox className="size-6" />
+                  </span>
                   <p className="text-xs font-semibold">All logged bonds are safe.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border">
                   {alerts.criticalExpiredBonds.map((bond: any) => (
-                    <div key={bond.id} className="p-4 flex items-start justify-between gap-4 hover:bg-secondary/20 transition-all">
+                    <div key={bond.id} className="flex items-start justify-between gap-4 p-4 transition-all hover:bg-rose-500/5">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="inline-block px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-extrabold uppercase">
+                          <span className="inline-block rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-extrabold uppercase text-rose-800">
                             {bond.bond_type}
                           </span>
-                          <span className="text-xs font-bold text-foreground truncate max-w-[200px]">
+                          <span className="max-w-[200px] truncate text-xs font-bold text-foreground">
                             {bond.project_name}
                           </span>
                         </div>
-                        <div className="text-[11px] text-muted-foreground mt-1">
+                        <div className="mt-1 text-[11px] text-muted-foreground">
                           Contractor: <strong className="text-foreground">{bond.contractor_name}</strong> &middot; Employer: {bond.employer_name}
                         </div>
-                        <div className="text-[11px] font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                        <div className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-rose-600">
                           <Clock className="size-3" />
                           Due {new Date(bond.expiry_date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}: {bond.days_overdue} days OVERDUE
                         </div>
                       </div>
                       <button
                         onClick={() => openEmailModal('bond', bond)}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all shrink-0 mt-0.5 shadow-sm"
+                        className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-rose-500 shadow-sm transition-all hover:bg-rose-50 hover:text-rose-600"
                         title="Send Overdue Notification Email"
                       >
                         <Mail className="size-4" />
@@ -760,48 +779,52 @@ DGM Office — EF Architects and Engineers Consulting PLC`
           </Card>
 
           {/* Nearly Expired Contract Time (Yellow Alerts) */}
-          <Card className="shadow-sm border-border">
-            <CardHeader className="border-b border-border bg-amber-500/5 flex flex-row items-center gap-2 py-4 px-6">
-              <Clock className="size-5 text-amber-500 shrink-0" />
+          <Card className="overflow-hidden border-border/60 shadow-sm">
+            <CardHeader className="flex flex-row items-center gap-3 border-b border-border bg-gradient-to-r from-amber-500/5 to-transparent px-6 py-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                <Clock className="size-5" />
+              </span>
               <div>
-                <CardTitle className="font-display text-base font-bold text-amber-800">
-                  NEARLY EXPIRED CONTRACT TIMELINE
+                <CardTitle className="font-display text-base font-bold text-amber-800 dark:text-amber-300">
+                  Nearly Expired Contract Timeline
                 </CardTitle>
-                <CardDescription className="text-amber-600/80 text-xs">
+                <CardDescription className="text-xs text-amber-600/80 dark:text-amber-400/70">
                   Approved EOT extensions expiring within 30 days
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="p-0 max-h-[380px] overflow-y-auto">
+            <CardContent className="max-h-[380px] overflow-y-auto p-0">
               {(!alerts?.nearlyExpiredEots || alerts.nearlyExpiredEots.length === 0) ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
-                  <Inbox className="size-8" />
+                <div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
+                  <span className="flex size-12 items-center justify-center rounded-full bg-secondary/60">
+                    <Inbox className="size-6" />
+                  </span>
                   <p className="text-xs font-semibold">No critical timelines expiring soon.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border">
                   {alerts.nearlyExpiredEots.map((eot: any) => (
-                    <div key={eot.id} className="p-4 flex items-start justify-between gap-4 hover:bg-secondary/20 transition-all">
+                    <div key={eot.id} className="flex items-start justify-between gap-4 p-4 transition-all hover:bg-amber-500/5">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold uppercase">
+                          <span className="inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-800">
                             Claim #{eot.eot_number}
                           </span>
-                          <span className="text-xs font-bold text-foreground truncate max-w-[200px]">
+                          <span className="max-w-[200px] truncate text-xs font-bold text-foreground">
                             {eot.project_name}
                           </span>
                         </div>
-                        <div className="text-[11px] text-muted-foreground mt-1">
+                        <div className="mt-1 text-[11px] text-muted-foreground">
                           Contractor: <strong className="text-foreground">{eot.contractor_name}</strong> &middot; Approved: {eot.days_approved} days
                         </div>
-                        <div className="text-[11px] font-semibold text-amber-600 mt-1.5 flex items-center gap-1">
+                        <div className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-amber-600">
                           <AlertTriangle className="size-3" />
                           Expiring on {new Date(eot.revised_completion_date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}: {eot.days_remaining} days left
                         </div>
                       </div>
                       <button
                         onClick={() => openEmailModal('eot', eot)}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background text-amber-600 hover:bg-amber-50 hover:text-amber-700 transition-all shrink-0 mt-0.5 shadow-sm"
+                        className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-amber-600 shadow-sm transition-all hover:bg-amber-50 hover:text-amber-700"
                         title="Send Expiry Alert Email"
                       >
                         <Mail className="size-4" />
@@ -817,11 +840,13 @@ DGM Office — EF Architects and Engineers Consulting PLC`
 
         {/* Email Alert Preview/Edit Modal */}
         {emailModalOpen && emailType && emailItem && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-            <Card className="w-full max-w-2xl shadow-lg border-border">
-              <CardHeader className={`border-b border-border ${emailType === 'bond' ? 'bg-rose-500/5' : 'bg-amber-500/5'}`}>
-                <CardTitle className={`font-display text-base font-bold flex items-center gap-2 ${emailType === 'bond' ? 'text-rose-800' : 'text-amber-800'}`}>
-                  <Mail className={`size-5 ${emailType === 'bond' ? 'text-rose-600' : 'text-amber-600'}`} />
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4">
+            <Card className="w-full max-w-2xl overflow-hidden rounded-t-2xl border-border/60 shadow-xl sm:rounded-2xl">
+              <CardHeader className={`border-b border-border ${emailType === 'bond' ? 'bg-gradient-to-r from-rose-500/5 to-transparent' : 'bg-gradient-to-r from-amber-500/5 to-transparent'}`}>
+                <CardTitle className={`flex items-center gap-2 font-display text-base font-bold ${emailType === 'bond' ? 'text-rose-800 dark:text-rose-300' : 'text-amber-800 dark:text-amber-300'}`}>
+                  <span className={`flex size-8 items-center justify-center rounded-full ${emailType === 'bond' ? 'bg-rose-100 dark:bg-rose-950/50' : 'bg-amber-100 dark:bg-amber-950/50'}`}>
+                    <Mail className={`size-4.5 ${emailType === 'bond' ? 'text-rose-600' : 'text-amber-600'}`} />
+                  </span>
                   Review &amp; Edit Notification Email
                 </CardTitle>
                 <CardDescription className="text-xs">
@@ -860,12 +885,12 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                       rows={12}
                       value={emailMessage}
                       onChange={(e) => setEmailMessage(e.target.value)}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono text-xs leading-relaxed"
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-xs leading-relaxed shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       required
                     />
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                  <div className="flex items-center justify-end gap-2 border-t border-border pt-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -878,10 +903,10 @@ DGM Office — EF Architects and Engineers Consulting PLC`
                     <Button
                       type="submit"
                       disabled={sendingEmail}
-                      className={`font-bold h-9 px-4 text-xs flex items-center gap-1.5 ${
+                      className={`flex h-9 items-center gap-1.5 px-4 text-xs font-bold shadow-sm ${
                         emailType === 'bond' 
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white' 
-                          : 'bg-amber-600 hover:bg-amber-700 text-white'
+                          ? 'bg-rose-600 text-white hover:bg-rose-700' 
+                          : 'bg-amber-600 text-white hover:bg-amber-700'
                       }`}
                     >
                       {sendingEmail ? (

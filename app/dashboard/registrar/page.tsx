@@ -37,11 +37,20 @@ import {
   Award,
   Users,
   FileSpreadsheet,
+  BookMarked,
 } from 'lucide-react'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 type RegistrarTab = 'correspondence' | 'bonds' | 'eot' | 'evaluations' | 'employees'
+
+const TAB_META: Record<RegistrarTab, { label: string; icon: React.ElementType }> = {
+  correspondence: { label: 'Correspondence', icon: FileText },
+  bonds: { label: 'Bonds', icon: Layers },
+  eot: { label: 'EOT', icon: Calendar },
+  evaluations: { label: 'Evaluations', icon: Award },
+  employees: { label: 'Employees', icon: Users },
+}
 
 export default function RegistrarPage() {
   const [activeTab, setActiveTab] = useState<RegistrarTab>('correspondence')
@@ -589,41 +598,53 @@ export default function RegistrarPage() {
     }
   }
 
+  const ActiveTabIcon = TAB_META[activeTab].icon
+
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-secondary/30 to-background">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-4 py-6 sm:py-8 sm:px-6">
         
         {/* Title Block */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
-              Registrar Tracking Center
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Log project correspondence, contractor bonds, Extension of Time (EOT) claims, and score reviews.
-            </p>
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/80 p-5 shadow-sm backdrop-blur sm:p-6">
+          <div className="flex items-center gap-3.5">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
+              <BookMarked className="size-6 text-accent" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+                Registrar Tracking Center
+              </h1>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Log correspondence, bonds, EOT claims, and performance reviews.
+              </p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1 bg-secondary/60 border border-border p-1 rounded-xl w-fit">
-            {(['correspondence', 'bonds', 'eot', 'evaluations', 'employees'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => {
-                  setActiveTab(tab)
-                  clearCorrespondenceForm()
-                  clearBondForm()
-                  clearEotForm()
-                  clearEvaluationForm()
-                }}
-                className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-all ${
-                  activeTab === tab
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+          <div className="flex w-full flex-wrap gap-1 rounded-xl border border-border bg-secondary/60 p-1">
+            {(Object.keys(TAB_META) as RegistrarTab[]).map((tab) => {
+              const meta = TAB_META[tab]
+              const Icon = meta.icon
+              return (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setActiveTab(tab)
+                    clearCorrespondenceForm()
+                    clearBondForm()
+                    clearEotForm()
+                    clearEvaluationForm()
+                  }}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold uppercase tracking-wider transition-all sm:flex-none sm:px-3 ${
+                    activeTab === tab
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon className="size-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{meta.label}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -631,17 +652,19 @@ export default function RegistrarPage() {
         {activeTab === 'employees' ? (
           <EmployeeManager />
         ) : (
-          <div className="grid gap-6 lg:grid-cols-12">
+          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:gap-6">
             
             {/* LEFT COLUMN: Direct Entry Forms */}
-            <div className="lg:col-span-4 flex flex-col gap-6">
+            <div className="flex flex-col gap-6 lg:col-span-4">
               
               {/* 1. Correspondence Entry Form */}
               {activeTab === 'correspondence' && (
-                <Card className="shadow-sm border-border">
-                  <CardHeader className="border-b border-border">
-                    <CardTitle className="font-display text-lg font-bold flex items-center gap-2">
-                      <FileText className="size-5 text-primary" />
+                <Card className="overflow-hidden border-border/60 shadow-sm">
+                  <CardHeader className="border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+                    <CardTitle className="font-display flex items-center gap-2 text-lg font-bold">
+                      <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <FileText className="size-4.5" />
+                      </span>
                       {editId ? 'Edit Letter' : 'Register Correspondence'}
                     </CardTitle>
                     <CardDescription>
@@ -662,7 +685,7 @@ export default function RegistrarPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                         <div className="flex flex-col gap-1.5">
                           <Label htmlFor="date-logged">Date Logged *</Label>
                           <Input
@@ -732,7 +755,7 @@ export default function RegistrarPage() {
                         </Select>
                       </div>
 
-                      <div className="flex items-center gap-2 border rounded-lg p-2.5 bg-secondary/30 border-border/80">
+                      <div className="flex items-center gap-2 rounded-lg border border-border/80 bg-secondary/30 p-2.5">
                         <input
                           id="resp-req"
                           type="checkbox"
@@ -740,7 +763,7 @@ export default function RegistrarPage() {
                           onChange={(e) => setCorrRespRequired(e.target.checked)}
                           className="size-4 rounded border-border text-primary focus:ring-primary"
                         />
-                        <Label htmlFor="resp-req" className="cursor-pointer font-semibold select-none">
+                        <Label htmlFor="resp-req" className="cursor-pointer select-none font-semibold">
                           Response Action Required
                         </Label>
                       </div>
@@ -771,7 +794,7 @@ export default function RegistrarPage() {
                           autoComplete="off"
                         />
                         {showSuggestions && corrSuggestions.length > 0 && (
-                          <div className="absolute top-[100%] left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-card p-1 shadow-md max-h-36 overflow-y-auto">
+                          <div className="absolute left-0 right-0 top-[100%] z-10 mt-1 max-h-36 overflow-y-auto rounded-lg border border-border bg-card p-1 shadow-md">
                             {corrSuggestions.map((s: any) => (
                               <button
                                 key={s.id}
@@ -780,7 +803,7 @@ export default function RegistrarPage() {
                                   setCorrLinkedRef(s.letter_ref_no)
                                   setShowSuggestions(false)
                                 }}
-                                className="w-full text-left rounded px-2.5 py-1.5 text-xs hover:bg-secondary text-foreground truncate"
+                                className="w-full truncate rounded px-2.5 py-1.5 text-left text-xs text-foreground hover:bg-secondary"
                               >
                                 {s.letter_ref_no} &middot; {s.subject}
                               </button>
@@ -801,12 +824,12 @@ export default function RegistrarPage() {
                         </div>
                       )}
 
-                      <div className="flex gap-2 mt-2">
-                        <Button type="submit" className="flex-1">
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                        <Button type="submit" className="flex-1 shadow-sm">
                           {editId ? 'Save Changes' : 'Register Letter'}
                         </Button>
                         {editId && (
-                          <Button type="button" variant="outline" onClick={clearCorrespondenceForm}>
+                          <Button type="button" variant="outline" onClick={clearCorrespondenceForm} className="sm:w-auto">
                             Cancel
                           </Button>
                         )}
@@ -818,10 +841,12 @@ export default function RegistrarPage() {
 
               {/* 2. Bond Issuance Form */}
               {activeTab === 'bonds' && (
-                <Card className="shadow-sm border-border">
-                  <CardHeader className="border-b border-border">
-                    <CardTitle className="font-display text-lg font-bold flex items-center gap-2">
-                      <Layers className="size-5 text-primary" />
+                <Card className="overflow-hidden border-border/60 shadow-sm">
+                  <CardHeader className="border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+                    <CardTitle className="font-display flex items-center gap-2 text-lg font-bold">
+                      <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Layers className="size-4.5" />
+                      </span>
                       {editId ? 'Edit Bond Info' : 'Log Contractor Bond'}
                     </CardTitle>
                     <CardDescription>
@@ -891,7 +916,7 @@ export default function RegistrarPage() {
                         </Select>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                         <div className="flex flex-col gap-1.5">
                           <Label htmlFor="bond-issue">Issue Date</Label>
                           <Input
@@ -941,12 +966,12 @@ export default function RegistrarPage() {
                         </Select>
                       </div>
 
-                      <div className="flex gap-2 mt-2">
-                        <Button type="submit" className="flex-1">
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                        <Button type="submit" className="flex-1 shadow-sm">
                           {editId ? 'Save Changes' : 'Log Project Bond'}
                         </Button>
                         {editId && (
-                          <Button type="button" variant="outline" onClick={clearBondForm}>
+                          <Button type="button" variant="outline" onClick={clearBondForm} className="sm:w-auto">
                             Cancel
                           </Button>
                         )}
@@ -958,10 +983,12 @@ export default function RegistrarPage() {
 
               {/* 3. EOT Tracker Form */}
               {activeTab === 'eot' && (
-                <Card className="shadow-sm border-border">
-                  <CardHeader className="border-b border-border">
-                    <CardTitle className="font-display text-lg font-bold flex items-center gap-2">
-                      <Calendar className="size-5 text-primary" />
+                <Card className="overflow-hidden border-border/60 shadow-sm">
+                  <CardHeader className="border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+                    <CardTitle className="font-display flex items-center gap-2 text-lg font-bold">
+                      <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Calendar className="size-4.5" />
+                      </span>
                       {editId ? 'Edit EOT Info' : 'Log Approved EOT'}
                     </CardTitle>
                     <CardDescription>
@@ -1015,7 +1042,7 @@ export default function RegistrarPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                         <div className="flex flex-col gap-1.5">
                           <Label htmlFor="eot-num">EOT Claim No. *</Label>
                           <Input
@@ -1075,17 +1102,17 @@ export default function RegistrarPage() {
                           onChange={(e) => setEotReason(e.target.value)}
                           placeholder="Detail justification..."
                           rows={3}
-                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground placeholder-muted-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition"
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground shadow-sm placeholder-muted-foreground transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                           required
                         />
                       </div>
 
-                      <div className="flex gap-2 mt-2">
-                        <Button type="submit" className="flex-1">
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                        <Button type="submit" className="flex-1 shadow-sm">
                           {editId ? 'Save Changes' : 'Log EOT Entry'}
                         </Button>
                         {editId && (
-                          <Button type="button" variant="outline" onClick={clearEotForm}>
+                          <Button type="button" variant="outline" onClick={clearEotForm} className="sm:w-auto">
                             Cancel
                           </Button>
                         )}
@@ -1097,10 +1124,12 @@ export default function RegistrarPage() {
 
               {/* 4. Performance Evaluation Form */}
               {activeTab === 'evaluations' && (
-                <Card className="shadow-sm border-border">
-                  <CardHeader className="border-b border-border">
-                    <CardTitle className="font-display text-lg font-bold flex items-center gap-2">
-                      <Award className="size-5 text-primary" />
+                <Card className="overflow-hidden border-border/60 shadow-sm">
+                  <CardHeader className="border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+                    <CardTitle className="font-display flex items-center gap-2 text-lg font-bold">
+                      <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Award className="size-4.5" />
+                      </span>
                       {editId ? 'Edit Score Review' : 'Create Performance Review'}
                     </CardTitle>
                     <CardDescription>
@@ -1129,7 +1158,7 @@ export default function RegistrarPage() {
                         </Select>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                         <div className="flex flex-col gap-1.5">
                           <Label htmlFor="eval-start">Period Start *</Label>
                           <Input
@@ -1152,12 +1181,12 @@ export default function RegistrarPage() {
                         </div>
                       </div>
 
-                      <div className="border-t border-border mt-2 pt-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-3">
-                          Factor Scores (0 - 100)
+                      <div className="mt-2 border-t border-border pt-3">
+                        <span className="mb-3 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Factor Scores (0 – 100)
                         </span>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                           <div className="flex flex-col gap-1.5">
                             <Label htmlFor="tech-score" className="text-xs font-medium">Tech Competence (40%)</Label>
                             <Input
@@ -1238,12 +1267,12 @@ export default function RegistrarPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 mt-2">
-                        <Button type="submit" className="flex-1">
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                        <Button type="submit" className="flex-1 shadow-sm">
                           {editId ? 'Save Changes' : 'Log Evaluation'}
                         </Button>
                         {editId && (
-                          <Button type="button" variant="outline" onClick={clearEvaluationForm}>
+                          <Button type="button" variant="outline" onClick={clearEvaluationForm} className="sm:w-auto">
                             Cancel
                           </Button>
                         )}
@@ -1256,418 +1285,459 @@ export default function RegistrarPage() {
             </div>
 
             {/* RIGHT COLUMN: Live Tabular Lists */}
-            <div className="lg:col-span-8">
+            <div className="min-w-0 lg:col-span-8">
               
               {/* Live Correspondence Table */}
               {activeTab === 'correspondence' && (
-                <Card className="shadow-sm border-border">
-                  <CardHeader className="border-b border-border flex flex-row items-center justify-between">
+                <Card className="overflow-hidden border-border/60 shadow-sm">
+                  <CardHeader className="flex flex-col gap-3 border-b border-border bg-gradient-to-r from-slate-500/5 to-transparent sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <CardTitle className="font-display text-lg">Active Mailbox Registry</CardTitle>
                       <CardDescription>Live entries streamed from Supabase</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
                       <button
                         onClick={handleExportCorrespondence}
                         disabled={isExporting}
                         title="Export Correspondence Log"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isExporting
                           ? <Loader2 className="size-3.5 animate-spin" />
                           : <FileSpreadsheet className="size-3.5" />
                         }
-                        <span className="hidden sm:inline">
-                          {isExporting ? 'Exporting…' : 'Export Log'}
-                        </span>
+                        <span>{isExporting ? 'Exporting…' : 'Export Log'}</span>
                       </button>
                       <button
                         onClick={() => mutateCorr()}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground shadow-sm transition-all hover:bg-secondary hover:text-foreground"
                       >
                         <RefreshCw className="size-4" />
                       </button>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Ref / Date</TableHead>
-                            <TableHead>Direction</TableHead>
-                            <TableHead>Counterparty</TableHead>
-                            <TableHead>Subject / Category</TableHead>
-                            <TableHead>Action Due</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {correspondence.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                                No letters registered yet. Create one on the left.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            correspondence.map((c: any) => (
-                              <TableRow key={c.id}>
-                                <TableCell>
-                                  <div className="font-semibold text-foreground text-xs">{c.letter_ref_no}</div>
-                                  <div className="text-[10px] text-muted-foreground mt-0.5">{c.date_logged}</div>
-                                </TableCell>
-                                <TableCell>
-                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                    c.direction === 'Incoming' ? 'bg-blue-500/10 text-blue-600' : 'bg-indigo-500/10 text-indigo-600'
-                                  }`}>
-                                    {c.direction}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="max-w-[140px] truncate text-xs font-medium">
-                                  {c.counterparty}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="text-xs text-foreground font-medium truncate max-w-[180px]">{c.subject}</div>
-                                  <div className="text-[10px] text-muted-foreground mt-0.5">{c.category}</div>
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                  {c.response_required ? (
-                                    <>
-                                      <div className="font-semibold text-foreground">{c.response_due_date || '—'}</div>
-                                      {c.response_sent_date && <div className="text-[10px] text-emerald-600">Sent: {c.response_sent_date}</div>}
-                                    </>
-                                  ) : (
-                                    <span className="text-muted-foreground text-[11px]">Not Required</span>
+                    {correspondence.length === 0 ? (
+                      <p className="py-12 text-center text-sm text-muted-foreground">No letters registered yet. Create one above.</p>
+                    ) : (
+                      <>
+                        {/* Mobile card list */}
+                        <div className="flex flex-col divide-y divide-border md:hidden">
+                          {correspondence.map((c: any) => (
+                            <div key={c.id} className="p-4">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-mono text-xs font-bold text-foreground">{c.letter_ref_no}</span>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.direction === 'Incoming' ? 'bg-blue-500/10 text-blue-600' : 'bg-indigo-500/10 text-indigo-600'}`}>{c.direction}</span>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${c.status === 'Closed' ? 'bg-emerald-500/10 text-emerald-600' : c.status === 'Overdue' ? 'bg-rose-500/10 text-rose-600' : c.status === 'Open' ? 'bg-amber-500/10 text-amber-600' : 'bg-secondary text-muted-foreground'}`}>{c.status}</span>
+                                  </div>
+                                  <p className="mt-1 truncate text-sm font-medium text-foreground">{c.subject}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">{c.counterparty} · {c.category} · {c.date_logged}</p>
+                                  {c.response_required && (
+                                    <p className="mt-1 text-xs font-medium text-amber-600">Due: {c.response_due_date || '—'}{c.response_sent_date ? ` · Sent: ${c.response_sent_date}` : ''}</p>
                                   )}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                    c.status === 'Closed' ? 'bg-emerald-500/10 text-emerald-600' :
-                                    c.status === 'Overdue' ? 'bg-rose-500/10 text-rose-600' :
-                                    c.status === 'Open' ? 'bg-amber-500/10 text-amber-600' :
-                                    'bg-secondary text-muted-foreground'
-                                  }`}>
-                                    {c.status}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <button
-                                    onClick={() => editCorrespondence(c)}
-                                    className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                                  >
-                                    <Edit2 className="size-3.5" />
-                                  </button>
-                                </TableCell>
+                                </div>
+                                <button onClick={() => editCorrespondence(c)} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                  <Edit2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Desktop table */}
+                        <div className="hidden overflow-x-auto md:block">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Ref / Date</TableHead>
+                                <TableHead>Direction</TableHead>
+                                <TableHead>Counterparty</TableHead>
+                                <TableHead>Subject / Category</TableHead>
+                                <TableHead>Action Due</TableHead>
+                                <TableHead className="text-center">Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
+                            </TableHeader>
+                            <TableBody>
+                              {correspondence.map((c: any) => (
+                                <TableRow key={c.id} className="transition-colors hover:bg-secondary/10">
+                                  <TableCell>
+                                    <div className="text-xs font-semibold text-foreground">{c.letter_ref_no}</div>
+                                    <div className="mt-0.5 text-[10px] text-muted-foreground">{c.date_logged}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.direction === 'Incoming' ? 'bg-blue-500/10 text-blue-600' : 'bg-indigo-500/10 text-indigo-600'}`}>{c.direction}</span>
+                                  </TableCell>
+                                  <TableCell className="max-w-[140px] truncate text-xs font-medium">{c.counterparty}</TableCell>
+                                  <TableCell>
+                                    <div className="max-w-[180px] truncate text-xs font-medium text-foreground">{c.subject}</div>
+                                    <div className="mt-0.5 text-[10px] text-muted-foreground">{c.category}</div>
+                                  </TableCell>
+                                  <TableCell className="text-xs">
+                                    {c.response_required ? (
+                                      <>
+                                        <div className="font-semibold text-foreground">{c.response_due_date || '—'}</div>
+                                        {c.response_sent_date && <div className="text-[10px] text-emerald-600">Sent: {c.response_sent_date}</div>}
+                                      </>
+                                    ) : (
+                                      <span className="text-[11px] text-muted-foreground">Not Required</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${c.status === 'Closed' ? 'bg-emerald-500/10 text-emerald-600' : c.status === 'Overdue' ? 'bg-rose-500/10 text-rose-600' : c.status === 'Open' ? 'bg-amber-500/10 text-amber-600' : 'bg-secondary text-muted-foreground'}`}>{c.status}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <button onClick={() => editCorrespondence(c)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                      <Edit2 className="size-3.5" />
+                                    </button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               )}
 
               {/* Live Project Bonds Table */}
               {activeTab === 'bonds' && (
-                <Card className="shadow-sm border-border">
-                  <CardHeader className="border-b border-border flex flex-row items-center justify-between">
+                <Card className="overflow-hidden border-border/60 shadow-sm">
+                  <CardHeader className="flex flex-col gap-3 border-b border-border bg-gradient-to-r from-slate-500/5 to-transparent sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <CardTitle className="font-display text-lg">Active Bonds ledger</CardTitle>
                       <CardDescription>Live active performance and payment guarantees</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
                       <button
                         onClick={handleExportBonds}
                         disabled={isExportingBonds}
                         title="Export Master Bonds Ledger"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isExportingBonds
                           ? <Loader2 className="size-3.5 animate-spin" />
                           : <FileSpreadsheet className="size-3.5" />
                         }
-                        <span className="hidden sm:inline">
-                          {isExportingBonds ? 'Exporting…' : 'Export Master Bonds Ledger'}
-                        </span>
+                        <span>{isExportingBonds ? 'Exporting…' : 'Export Bonds Ledger'}</span>
                       </button>
                       <button
                         onClick={() => mutateBonds()}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground shadow-sm transition-all hover:bg-secondary hover:text-foreground"
                       >
                         <RefreshCw className="size-4" />
                       </button>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Project / Contractor</TableHead>
-                            <TableHead>Bond Type</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Expiry Date</TableHead>
-                            <TableHead>Days Remaining</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {bonds.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                                No bonds logged. Enter details on the left.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            bonds.map((b: any) => (
-                              <TableRow key={b.id}>
-                                <TableCell>
-                                  <div className="font-semibold text-foreground text-xs">{b.project_name}</div>
-                                  <div className="text-[10px] text-muted-foreground mt-0.5">Contractor: {b.contractor_name}</div>
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                  {b.bond_type}
-                                </TableCell>
-                                <TableCell className="text-xs font-semibold text-foreground">
-                                  {b.amount ? `${Number(b.amount).toLocaleString()} ETB` : '—'}
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                  {b.expiry_date}
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                  {b.status === 'Released' ? (
-                                    <span className="text-muted-foreground">—</span>
-                                  ) : (
-                                    <span className={b.days_remaining <= 0 ? 'text-rose-600 font-bold' : b.days_remaining <= 30 ? 'text-amber-600 font-semibold' : 'text-emerald-600'}>
+                    {bonds.length === 0 ? (
+                      <p className="py-12 text-center text-sm text-muted-foreground">No bonds logged. Enter details above.</p>
+                    ) : (
+                      <>
+                        {/* Mobile card list */}
+                        <div className="flex flex-col divide-y divide-border md:hidden">
+                          {bonds.map((b: any) => (
+                            <div key={b.id} className="p-4">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-bold text-foreground">{b.project_name}</span>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${b.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600' : b.status === 'Expired' ? 'bg-rose-500/10 text-rose-600' : 'bg-secondary text-muted-foreground'}`}>{b.status}</span>
+                                  </div>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">Contractor: {b.contractor_name}</p>
+                                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                    <span className="text-muted-foreground">{b.bond_type}</span>
+                                    <span className="font-semibold text-foreground">{b.amount ? `${Number(b.amount).toLocaleString()} ETB` : '—'}</span>
+                                    <span className="text-muted-foreground">Expiry: {b.expiry_date}</span>
+                                  </div>
+                                  {b.status !== 'Released' && (
+                                    <p className={`mt-1 text-xs font-semibold ${b.days_remaining <= 0 ? 'text-rose-600' : b.days_remaining <= 30 ? 'text-amber-600' : 'text-emerald-600'}`}>
                                       {b.days_remaining <= 0 ? `${Math.abs(b.days_remaining)} days OVERDUE` : `${b.days_remaining} days left`}
-                                    </span>
+                                    </p>
                                   )}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                    b.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600' :
-                                    b.status === 'Expired' ? 'bg-rose-500/10 text-rose-600' :
-                                    'bg-secondary text-muted-foreground'
-                                  }`}>
-                                    {b.status}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <button
-                                    onClick={() => editBond(b)}
-                                    className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                                  >
-                                    <Edit2 className="size-3.5" />
-                                  </button>
-                                </TableCell>
+                                </div>
+                                <button onClick={() => editBond(b)} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                  <Edit2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Desktop table */}
+                        <div className="hidden overflow-x-auto md:block">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Project / Contractor</TableHead>
+                                <TableHead>Bond Type</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Expiry Date</TableHead>
+                                <TableHead>Days Remaining</TableHead>
+                                <TableHead className="text-center">Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
+                            </TableHeader>
+                            <TableBody>
+                              {bonds.map((b: any) => (
+                                <TableRow key={b.id} className="transition-colors hover:bg-secondary/10">
+                                  <TableCell>
+                                    <div className="text-xs font-semibold text-foreground">{b.project_name}</div>
+                                    <div className="mt-0.5 text-[10px] text-muted-foreground">Contractor: {b.contractor_name}</div>
+                                  </TableCell>
+                                  <TableCell className="text-xs">{b.bond_type}</TableCell>
+                                  <TableCell className="text-xs font-semibold text-foreground">{b.amount ? `${Number(b.amount).toLocaleString()} ETB` : '—'}</TableCell>
+                                  <TableCell className="text-xs">{b.expiry_date}</TableCell>
+                                  <TableCell className="text-xs">
+                                    {b.status === 'Released' ? <span className="text-muted-foreground">—</span> : (
+                                      <span className={b.days_remaining <= 0 ? 'font-bold text-rose-600' : b.days_remaining <= 30 ? 'font-semibold text-amber-600' : 'text-emerald-600'}>
+                                        {b.days_remaining <= 0 ? `${Math.abs(b.days_remaining)} days OVERDUE` : `${b.days_remaining} days left`}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${b.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600' : b.status === 'Expired' ? 'bg-rose-500/10 text-rose-600' : 'bg-secondary text-muted-foreground'}`}>{b.status}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <button onClick={() => editBond(b)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                      <Edit2 className="size-3.5" />
+                                    </button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               )}
 
               {/* Live EOT Tracker Table */}
               {activeTab === 'eot' && (
-                <Card className="shadow-sm border-border">
-                  <CardHeader className="border-b border-border flex flex-row items-center justify-between">
+                <Card className="overflow-hidden border-border/60 shadow-sm">
+                  <CardHeader className="flex flex-col gap-3 border-b border-border bg-gradient-to-r from-slate-500/5 to-transparent sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <CardTitle className="font-display text-lg">EOT Extension Logs</CardTitle>
                       <CardDescription>Live approved Extension of Time metrics</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
                       <button
                         onClick={handleExportEot}
                         disabled={isExportingEot}
                         title="Export EOT Log"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isExportingEot
                           ? <Loader2 className="size-3.5 animate-spin" />
                           : <FileSpreadsheet className="size-3.5" />
                         }
-                        <span className="hidden sm:inline">
-                          {isExportingEot ? 'Exporting…' : 'Export EOT Log'}
-                        </span>
+                        <span>{isExportingEot ? 'Exporting…' : 'Export EOT Log'}</span>
                       </button>
                       <button
                         onClick={() => mutateEot()}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground shadow-sm transition-all hover:bg-secondary hover:text-foreground"
                       >
                         <RefreshCw className="size-4" />
                       </button>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Project / Contractor</TableHead>
-                            <TableHead>EOT No.</TableHead>
-                            <TableHead>Approved Days</TableHead>
-                            <TableHead>Completion Date</TableHead>
-                            <TableHead>Alert Status</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {eots.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                                No EOT log entries. Create one on the left.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            eots.map((e: any) => (
-                              <TableRow key={e.id}>
-                                <TableCell>
-                                  <div className="font-semibold text-foreground text-xs">{e.project_name}</div>
-                                  <div className="text-[10px] text-muted-foreground mt-0.5">Contractor: {e.contractor_name}</div>
-                                </TableCell>
-                                <TableCell className="text-xs text-center font-bold">
-                                  {e.eot_number}
-                                </TableCell>
-                                <TableCell className="text-xs text-center font-semibold">
-                                  {e.days_approved} days
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                  {e.revised_completion_date}
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] ${getAlertBadgeColor(e.eot_status_alert)}`}>
-                                    {e.eot_status_alert}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${getEotBadgeColor(e.status)}`}>
-                                    {e.status}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <button
-                                    onClick={() => editEot(e)}
-                                    className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                                  >
-                                    <Edit2 className="size-3.5" />
-                                  </button>
-                                </TableCell>
+                    {eots.length === 0 ? (
+                      <p className="py-12 text-center text-sm text-muted-foreground">No EOT log entries. Create one above.</p>
+                    ) : (
+                      <>
+                        {/* Mobile card list */}
+                        <div className="flex flex-col divide-y divide-border md:hidden">
+                          {eots.map((e: any) => (
+                            <div key={e.id} className="p-4">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-bold text-foreground">{e.project_name}</span>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${getEotBadgeColor(e.status)}`}>{e.status}</span>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] ${getAlertBadgeColor(e.eot_status_alert)}`}>{e.eot_status_alert}</span>
+                                  </div>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">Contractor: {e.contractor_name}</p>
+                                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                    <span className="text-muted-foreground">Claim #{e.eot_number}</span>
+                                    <span className="font-semibold text-foreground">{e.days_approved} days approved</span>
+                                    <span className="text-muted-foreground">Completion: {e.revised_completion_date}</span>
+                                  </div>
+                                </div>
+                                <button onClick={() => editEot(e)} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                  <Edit2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Desktop table */}
+                        <div className="hidden overflow-x-auto md:block">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Project / Contractor</TableHead>
+                                <TableHead>EOT No.</TableHead>
+                                <TableHead>Approved Days</TableHead>
+                                <TableHead>Completion Date</TableHead>
+                                <TableHead>Alert Status</TableHead>
+                                <TableHead className="text-center">Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
+                            </TableHeader>
+                            <TableBody>
+                              {eots.map((e: any) => (
+                                <TableRow key={e.id} className="transition-colors hover:bg-secondary/10">
+                                  <TableCell>
+                                    <div className="text-xs font-semibold text-foreground">{e.project_name}</div>
+                                    <div className="mt-0.5 text-[10px] text-muted-foreground">Contractor: {e.contractor_name}</div>
+                                  </TableCell>
+                                  <TableCell className="text-center text-xs font-bold">{e.eot_number}</TableCell>
+                                  <TableCell className="text-center text-xs font-semibold">{e.days_approved} days</TableCell>
+                                  <TableCell className="text-xs">{e.revised_completion_date}</TableCell>
+                                  <TableCell className="text-xs">
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] ${getAlertBadgeColor(e.eot_status_alert)}`}>{e.eot_status_alert}</span>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${getEotBadgeColor(e.status)}`}>{e.status}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <button onClick={() => editEot(e)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                      <Edit2 className="size-3.5" />
+                                    </button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               )}
 
               {/* Past Performance Reviews Table */}
               {activeTab === 'evaluations' && (
-                <Card className="shadow-sm border-border">
-                  <CardHeader className="border-b border-border flex flex-row items-center justify-between">
+                <Card className="overflow-hidden border-border/60 shadow-sm">
+                  <CardHeader className="flex flex-col gap-3 border-b border-border bg-gradient-to-r from-slate-500/5 to-transparent sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <CardTitle className="font-display text-lg">Logged Employee Scorecards</CardTitle>
                       <CardDescription>Past evaluations automatically scored and ranked</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
                       <button
                         onClick={handleExportPerformance}
                         disabled={isExportingPerf}
                         title="Export Performance Log"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isExportingPerf
                           ? <Loader2 className="size-3.5 animate-spin" />
                           : <FileSpreadsheet className="size-3.5" />
                         }
-                        <span className="hidden sm:inline">
-                          {isExportingPerf ? 'Exporting…' : 'Export Performance Log'}
-                        </span>
+                        <span>{isExportingPerf ? 'Exporting…' : 'Export Performance Log'}</span>
                       </button>
                       <button
                         onClick={() => mutateEvals()}
-                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                        className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground shadow-sm transition-all hover:bg-secondary hover:text-foreground"
                       >
                         <RefreshCw className="size-4" />
                       </button>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Employee Name</TableHead>
-                            <TableHead>Review Period</TableHead>
-                            <TableHead className="text-center">Tech (40%)</TableHead>
-                            <TableHead className="text-center">Prod (30%)</TableHead>
-                            <TableHead className="text-center">Total Score</TableHead>
-                            <TableHead className="text-center">Performance Level</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {evaluations.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                                No scorecards registered yet. Save one on the left.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            evaluations.map((e: any) => {
-                              const emp = e.employees ?? {}
-                              return (
-                                <TableRow key={e.id}>
-                                  <TableCell>
-                                    <div className="font-semibold text-foreground text-xs">{emp.full_name ?? '—'}</div>
-                                    <div className="text-[10px] text-muted-foreground mt-0.5">{emp.department ?? '—'}</div>
-                                  </TableCell>
-                                  <TableCell className="text-xs whitespace-nowrap">
-                                    {e.evaluation_period_start} – {e.evaluation_period_end}
-                                  </TableCell>
-                                  <TableCell className="text-xs text-center font-medium">
-                                    {e.tech_competence_score}%
-                                  </TableCell>
-                                  <TableCell className="text-xs text-center font-medium">
-                                    {e.productivity_score}%
-                                  </TableCell>
-                                  <TableCell className="text-xs text-center font-extrabold text-foreground">
-                                    {Number(e.total_score).toFixed(2)}%
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                      e.performance_level === 'Outstanding' ? 'bg-emerald-500/10 text-emerald-600' :
-                                      e.performance_level === 'Very Good' ? 'bg-blue-500/10 text-blue-600' :
-                                      e.performance_level === 'Good' ? 'bg-amber-500/10 text-amber-600' :
-                                      e.performance_level === 'Satisfactory' ? 'bg-orange-500/10 text-orange-600' :
-                                      'bg-rose-500/10 text-rose-600'
-                                    }`}>
-                                      {e.performance_level}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <button
-                                      onClick={() => editEvaluation(e)}
-                                      className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                                    >
-                                      <Edit2 className="size-3.5" />
-                                    </button>
-                                  </TableCell>
-                                </TableRow>
-                              )
-                            })
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
+                    {evaluations.length === 0 ? (
+                      <p className="py-12 text-center text-sm text-muted-foreground">No scorecards registered yet. Save one above.</p>
+                    ) : (
+                      <>
+                        {/* Mobile card list */}
+                        <div className="flex flex-col divide-y divide-border md:hidden">
+                          {evaluations.map((e: any) => {
+                            const emp = e.employees ?? {}
+                            const levelColor =
+                              e.performance_level === 'Outstanding' ? 'bg-emerald-500/10 text-emerald-600' :
+                              e.performance_level === 'Very Good' ? 'bg-blue-500/10 text-blue-600' :
+                              e.performance_level === 'Good' ? 'bg-amber-500/10 text-amber-600' :
+                              e.performance_level === 'Satisfactory' ? 'bg-orange-500/10 text-orange-600' :
+                              'bg-rose-500/10 text-rose-600'
+                            return (
+                              <div key={e.id} className="p-4">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-sm font-bold text-foreground">{emp.full_name ?? '—'}</span>
+                                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${levelColor}`}>{e.performance_level}</span>
+                                    </div>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">{emp.department ?? '—'}</p>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">Period: {e.evaluation_period_start} – {e.evaluation_period_end}</p>
+                                    <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                      <span className="text-muted-foreground">Tech: <strong className="text-foreground">{e.tech_competence_score}%</strong></span>
+                                      <span className="text-muted-foreground">Prod: <strong className="text-foreground">{e.productivity_score}%</strong></span>
+                                      <span className="font-semibold text-foreground">Total: {Number(e.total_score).toFixed(2)}%</span>
+                                    </div>
+                                  </div>
+                                  <button onClick={() => editEvaluation(e)} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                    <Edit2 className="size-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {/* Desktop table */}
+                        <div className="hidden overflow-x-auto md:block">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Employee Name</TableHead>
+                                <TableHead>Review Period</TableHead>
+                                <TableHead className="text-center">Tech (40%)</TableHead>
+                                <TableHead className="text-center">Prod (30%)</TableHead>
+                                <TableHead className="text-center">Total Score</TableHead>
+                                <TableHead className="text-center">Performance Level</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {evaluations.map((e: any) => {
+                                const emp = e.employees ?? {}
+                                return (
+                                  <TableRow key={e.id} className="transition-colors hover:bg-secondary/10">
+                                    <TableCell>
+                                      <div className="text-xs font-semibold text-foreground">{emp.full_name ?? '—'}</div>
+                                      <div className="mt-0.5 text-[10px] text-muted-foreground">{emp.department ?? '—'}</div>
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap text-xs">{e.evaluation_period_start} – {e.evaluation_period_end}</TableCell>
+                                    <TableCell className="text-center text-xs font-medium">{e.tech_competence_score}%</TableCell>
+                                    <TableCell className="text-center text-xs font-medium">{e.productivity_score}%</TableCell>
+                                    <TableCell className="text-center text-xs font-extrabold text-foreground">{Number(e.total_score).toFixed(2)}%</TableCell>
+                                    <TableCell className="text-center">
+                                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                        e.performance_level === 'Outstanding' ? 'bg-emerald-500/10 text-emerald-600' :
+                                        e.performance_level === 'Very Good' ? 'bg-blue-500/10 text-blue-600' :
+                                        e.performance_level === 'Good' ? 'bg-amber-500/10 text-amber-600' :
+                                        e.performance_level === 'Satisfactory' ? 'bg-orange-500/10 text-orange-600' :
+                                        'bg-rose-500/10 text-rose-600'
+                                      }`}>{e.performance_level}</span>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <button onClick={() => editEvaluation(e)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                        <Edit2 className="size-3.5" />
+                                      </button>
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               )}

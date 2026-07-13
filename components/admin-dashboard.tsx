@@ -215,28 +215,27 @@ export function AdminDashboard() {
   return (
     <div className="flex flex-col gap-8">
       {/* Tab navigation */}
-      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-secondary/40 p-1 w-fit">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-secondary/40 p-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all sm:px-4 ${
               activeTab === tab.id
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <tab.icon className="size-4" />
-            {tab.label}
+            <span className="hidden xs:inline sm:inline">{tab.label}</span>
           </button>
         ))}
-        {/* External link to the dedicated Project Management Console */}
         <Link
           href="/dashboard/admin/projects"
-          className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-background/60"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-background/60 sm:px-4"
         >
           <FolderKanban className="size-4" />
-          Project Console
+          <span className="hidden xs:inline sm:inline">Project Console</span>
         </Link>
       </div>
 
@@ -282,9 +281,9 @@ export function AdminDashboard() {
           )}
 
           {/* Reminder Override */}
-          <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-lg bg-accent/15 text-accent">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
                 <Bell className="size-5" />
               </span>
               <div>
@@ -298,16 +297,12 @@ export function AdminDashboard() {
               variant="outline"
               onClick={triggerReminders}
               disabled={reminding}
-              className="shrink-0"
+              className="shrink-0 self-start sm:self-auto"
             >
               {reminding ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" /> Sending…
-                </>
+                <><Loader2 className="size-4 animate-spin" /> Sending…</>
               ) : (
-                <>
-                  <Bell className="size-4" /> Trigger reminders
-                </>
+                <><Bell className="size-4" /> Trigger reminders</>
               )}
             </Button>
           </div>
@@ -315,7 +310,7 @@ export function AdminDashboard() {
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3">
             <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v ?? 'all')}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All periods" />
               </SelectTrigger>
               <SelectContent>
@@ -329,7 +324,7 @@ export function AdminDashboard() {
             </Select>
 
             <Select value={projectFilter} onValueChange={(v) => setProjectFilter(v ?? 'all')}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full sm:w-[220px]">
                 <SelectValue placeholder="All projects" />
               </SelectTrigger>
               <SelectContent>
@@ -344,7 +339,7 @@ export function AdminDashboard() {
 
             <button
               onClick={() => mutate()}
-              className="ml-auto inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:ml-auto"
             >
               <RefreshCw className="size-4" /> Refresh
             </button>
@@ -422,12 +417,12 @@ export function AdminDashboard() {
                             <StatusBadge status={r.status} />
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
                               <Select
                                 value={r.status}
                                 onValueChange={(v) => v && updateStatus(r.id, v as SubmissionStatus)}
                               >
-                                <SelectTrigger className="h-8 w-[150px] text-xs">
+                                <SelectTrigger className="h-8 w-[130px] text-xs">
                                   <SelectValue>
                                     {(v: string) => STATUS_LABELS[v as SubmissionStatus]}
                                   </SelectValue>

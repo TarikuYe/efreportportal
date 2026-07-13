@@ -132,15 +132,15 @@ export function SiteHeader() {
         </Link>
 
         {user ? (
-          <div className="hidden md:flex items-center gap-6 h-full">
-            <nav className="flex items-center gap-1 text-sm font-medium h-full">
+          <div className="hidden md:flex items-center gap-4 h-full min-w-0">
+            <nav className="flex items-center gap-0.5 text-sm font-medium h-full min-w-0 overflow-x-auto">
               {navLinks.map((link) => {
                 const isActive = isLinkActive(link.href)
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`flex items-center h-16 px-3 border-b-2 text-sm font-semibold transition-all duration-200 ${
+                    className={`flex shrink-0 items-center h-16 px-3 border-b-2 text-sm font-semibold transition-all duration-200 ${
                       isActive
                         ? 'border-primary text-primary font-bold'
                         : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
@@ -152,10 +152,10 @@ export function SiteHeader() {
               })}
             </nav>
 
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               <span className="h-5 w-px bg-border" />
               <div className="flex flex-col items-end">
-                <span className="max-w-[160px] truncate text-xs font-semibold text-foreground">
+                <span className="max-w-[140px] truncate text-xs font-semibold text-foreground">
                   {user.user_metadata?.full_name || user.email?.split('@')[0]}
                 </span>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase mt-0.5 ${getRoleBadgeClass(role)}`}>

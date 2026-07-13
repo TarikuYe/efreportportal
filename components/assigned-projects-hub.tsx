@@ -160,25 +160,25 @@ export function AssignedProjectsHub({
   return (
     <div className="flex flex-col gap-8">
       {/* ── Page Header ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="absolute right-0 top-0 translate-x-1/3 -translate-y-1/3 size-40 rounded-full bg-primary/5 blur-2xl pointer-events-none" />
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <FolderKanban className="size-6 text-accent" />
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:size-12">
+              <FolderKanban className="size-5 text-accent sm:size-6" />
             </div>
-            <div>
-              <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">
+            <div className="min-w-0">
+              <h1 className="font-display text-xl font-extrabold tracking-tight text-foreground sm:text-2xl">
                 My Assigned Projects
               </h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {employee.full_name} &middot; {employee.department ?? employee.role} &middot; Read-only directory
+              <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                {employee.full_name} &middot; {employee.department ?? employee.role}
               </p>
             </div>
           </div>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground self-start sm:self-auto"
+          className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:self-auto"
         >
           <ArrowLeft className="size-4" />
           Back to Dashboard

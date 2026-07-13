@@ -241,7 +241,7 @@ export function EmployeeManager() {
       )}
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-display text-lg font-bold text-foreground">Manage employees</h3>
           <p className="text-sm text-muted-foreground">
@@ -251,7 +251,7 @@ export function EmployeeManager() {
         <Button
           onClick={() => setShowAdd((v) => !v)}
           variant={showAdd ? 'outline' : 'default'}
-          className="shrink-0"
+          className="shrink-0 self-start sm:self-auto"
         >
           {showAdd ? (
             <><X className="size-4" /> Cancel</>
@@ -267,52 +267,50 @@ export function EmployeeManager() {
           <CardContent className="pt-5">
             <form
               onSubmit={handleAdd}
-              className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+              className="flex flex-col gap-3"
             >
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Full name *</label>
-                <Input
-                  id="new-emp-name"
-                  placeholder="Jane Doe"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-44"
-                  required
-                />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Full name *</label>
+                  <Input
+                    id="new-emp-name"
+                    placeholder="Jane Doe"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Work email *</label>
+                  <Input
+                    id="new-emp-email"
+                    type="email"
+                    placeholder="jane@efae.com"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Department</label>
+                  <Input
+                    id="new-emp-dept"
+                    placeholder="e.g. Architecture"
+                    value={newDept}
+                    onChange={(e) => setNewDept(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Role</label>
+                  <Input
+                    id="new-emp-role"
+                    placeholder="e.g. Engineer"
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Work email *</label>
-                <Input
-                  id="new-emp-email"
-                  type="email"
-                  placeholder="jane@efae.com"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-52"
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Department</label>
-                <Input
-                  id="new-emp-dept"
-                  placeholder="e.g. Architecture"
-                  value={newDept}
-                  onChange={(e) => setNewDept(e.target.value)}
-                  className="w-44"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Role</label>
-                <Input
-                  id="new-emp-role"
-                  placeholder="e.g. Engineer"
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  className="w-44"
-                />
-              </div>
-              <Button type="submit" disabled={adding} className="shrink-0">
+              <Button type="submit" disabled={adding} className="sm:self-start">
                 {adding ? (
                   <><Loader2 className="size-4 animate-spin" /> Creating…</>
                 ) : (
@@ -339,33 +337,111 @@ export function EmployeeManager() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Assigned projects</TableHead>
-                  <TableHead className="w-24 text-center">Status</TableHead>
-                  <TableHead className="w-48 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                      Loading employees…
-                    </TableCell>
-                  </TableRow>
-                ) : employees.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                      No employees yet. Click &quot;Add employee&quot; to create the first account.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  employees.map((emp) => {
+          {isLoading ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">Loading employees…</div>
+          ) : employees.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              No employees yet. Click &quot;Add employee&quot; to create the first account.
+            </div>
+          ) : (
+            <>
+              {/* ── Mobile card list (hidden md+) ── */}
+              <div className="flex flex-col divide-y divide-border md:hidden">
+                {employees.map((emp) => {
+                  const isExpanded = expandedId === emp.id
+                  const assignedCodes = assignmentMap.get(emp.id) ?? new Set<string>()
+                  const roleBadgeClass =
+                    emp.role === 'dgm' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                    : emp.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                  return (
+                    <div key={emp.id} className={`p-4 ${!emp.active ? 'opacity-50' : ''}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          {editingId === emp.id ? (
+                            <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-sm mb-1" autoFocus />
+                          ) : (
+                            <div className="font-medium text-foreground truncate">{emp.full_name}</div>
+                          )}
+                          <div className="text-xs text-muted-foreground truncate">{emp.email}</div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${roleBadgeClass}`}>{emp.role}</span>
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${emp.active ? 'bg-chart-4/15 text-chart-4' : 'bg-secondary text-muted-foreground'}`}>{emp.active ? 'Active' : 'Inactive'}</span>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {editingId === emp.id ? (
+                            <>
+                              <button onClick={() => handleSaveEdit(emp.id)} disabled={saving} className="inline-flex size-8 items-center justify-center rounded-md bg-accent text-accent-foreground hover:opacity-90 disabled:opacity-50" aria-label="Save">
+                                {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                              </button>
+                              <button onClick={() => setEditingId(null)} className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Cancel"><X className="size-3.5" /></button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => { setEditingId(emp.id); setEditName(emp.full_name); setEditDept(emp.department ?? ''); setEditRole(emp.role ?? 'engineer') }} className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" aria-label={`Edit ${emp.full_name}`}><Pencil className="size-3.5" /></button>
+                              <button onClick={() => setExpandedId(isExpanded ? null : emp.id)} className={`inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors ${isExpanded ? 'border-accent bg-accent/10 text-accent' : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'}`}>
+                                Projects{isExpanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                              </button>
+                              <button onClick={() => handleToggleActive(emp)} disabled={busyId === emp.id} className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50" aria-label={emp.active ? 'Deactivate' : 'Reactivate'}>
+                                {busyId === emp.id ? <Loader2 className="size-3.5 animate-spin" /> : emp.active ? <UserX className="size-3.5" /> : <UserCheck className="size-3.5" />}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {editingId === emp.id && (
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <Input value={editDept} onChange={(e) => setEditDept(e.target.value)} className="h-8 text-sm" placeholder="Department" />
+                          <Input value={editRole} onChange={(e) => setEditRole(e.target.value)} className="h-8 text-sm" placeholder="Role" />
+                        </div>
+                      )}
+                      {editingId !== emp.id && (
+                        <div className="mt-1.5 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {emp.department && <span>{emp.department}</span>}
+                          {[...assignedCodes].map((code) => (
+                            <span key={code} className="inline-flex items-center rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent">{code}</span>
+                          ))}
+                        </div>
+                      )}
+                      {isExpanded && (
+                        <div className="mt-3 rounded-lg bg-secondary/30 p-3">
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Projects for {emp.full_name}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {allProjects.map((project) => {
+                              const isAssigned = assignedCodes.has(project.code)
+                              const isToggling = togglingAssign === `${emp.id}-${project.code}`
+                              return (
+                                <button key={project.code} onClick={() => handleToggleAssignment(emp, project.code)} disabled={isToggling || !project.active}
+                                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-50 ${isAssigned ? 'border-accent bg-accent/15 text-accent' : 'border-border bg-background text-muted-foreground hover:border-accent/50 hover:text-foreground'} ${!project.active ? 'line-through opacity-40' : ''}`}>
+                                  {isToggling ? <Loader2 className="size-3 animate-spin" /> : isAssigned ? <Check className="size-3" /> : <Plus className="size-3" />}
+                                  {project.code} — {project.name}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* ── Desktop table (hidden below md) ── */}
+              <div className="hidden overflow-x-auto md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Assigned projects</TableHead>
+                      <TableHead className="w-24 text-center">Status</TableHead>
+                      <TableHead className="w-48 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {employees.map((emp) => {
                     const isExpanded = expandedId === emp.id
                     const assignedCodes = assignmentMap.get(emp.id) ?? new Set<string>()
 
@@ -586,11 +662,12 @@ export function EmployeeManager() {
                         )}
                       </React.Fragment>
                     )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
