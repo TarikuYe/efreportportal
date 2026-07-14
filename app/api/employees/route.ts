@@ -231,3 +231,57 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 })
   }
 }
+
+// ─────────────────────────────────────────
+// DELETE /api/employees  — permanently remove employee (admin/dgm only)
+// ─────────────────────────────────────────
+export async function DELETE(request: Request) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user?.email) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+    }
+    const hasAccess = await checkAdminOrDgm(user.id, user.email)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Admin access required.' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const id = String(body.id ?? '').trim()
+    if (!id) {
+      return NextResponse.json({ error: 'Employee id is required.' }, { status: 400 })
+    }
+
+    // Prevent self-deletion
+    if (id === user.id) {
+      return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+
+    // Remove employee profile row first (FK cascade will clean up assignments)
+    const { error: profileError } = await admin
+      .from('employees')
+      .delete()
+      .eq('id', id)
+
+    if (profileError) {
+      console.log('[employees] DELETE profile error:', profileError.message)
+      return NextResponse.json({ error: 'Failed to delete employee profile.' }, { status: 500 })
+    }
+
+    // Remove the Supabase Auth user
+    const { error: authError } = await admin.auth.admin.deleteUser(id)
+    if (authError) {
+      console.log('[employees] DELETE auth user error:', authError.message)
+      // Profile is already gone; auth cleanup failure is non-fatal but worth logging
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.log('[employees] DELETE unexpected:', err instanceof Error ? err.message : String(err))
+    return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 })
+  }
+}

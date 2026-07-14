@@ -17,6 +17,8 @@ import {
   UserCheck,
   UserX,
   KeyRound,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -96,6 +98,10 @@ export function EmployeeManager() {
 
   // ── Busy (activate/deactivate) per row ──
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  // ── Delete confirmation ──
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -197,8 +203,80 @@ export function EmployeeManager() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/employees', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: deleteTarget.id }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Failed to delete employee.')
+      toast.success('Employee permanently deleted', { description: deleteTarget.email })
+      setDeleteTarget(null)
+      mutate()
+    } catch (err) {
+      toast.error('Delete failed', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {/* ── Delete confirmation dialog ── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-destructive/30 bg-card p-6 shadow-xl">
+            <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <AlertTriangle className="size-6" />
+            </div>
+            <h3 className="font-display text-lg font-bold text-foreground">Delete employee?</h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              You are about to permanently delete the account for{' '}
+              <strong className="text-foreground">{deleteTarget.full_name}</strong>.
+            </p>
+            <div className="mt-3 rounded-lg border border-border bg-secondary/40 px-4 py-3 text-sm">
+              <div className="font-medium text-foreground">{deleteTarget.full_name}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">{deleteTarget.email}</div>
+              {deleteTarget.department && (
+                <div className="mt-0.5 text-xs text-muted-foreground">{deleteTarget.department}</div>
+              )}
+            </div>
+            <div className="mt-3 rounded-lg bg-destructive/8 px-3 py-2.5 text-xs text-destructive">
+              <strong>This action cannot be undone.</strong> Their account, login access, and all project
+              assignments will be permanently removed.
+            </div>
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="sm:w-auto"
+              >
+                Cancel, keep employee
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="sm:w-auto"
+              >
+                {deleting ? (
+                  <><Loader2 className="size-4 animate-spin" /> Deleting…</>
+                ) : (
+                  <><Trash2 className="size-4" /> Yes, delete permanently</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── One-time password modal ── */}
       {tempPassword && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -385,6 +463,9 @@ export function EmployeeManager() {
                               </button>
                               <button onClick={() => handleToggleActive(emp)} disabled={busyId === emp.id} className="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50" aria-label={emp.active ? 'Deactivate' : 'Reactivate'}>
                                 {busyId === emp.id ? <Loader2 className="size-3.5 animate-spin" /> : emp.active ? <UserX className="size-3.5" /> : <UserCheck className="size-3.5" />}
+                              </button>
+                              <button onClick={() => setDeleteTarget(emp)} className="inline-flex size-8 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-colors hover:bg-destructive hover:text-white" aria-label={`Delete ${emp.full_name}`} title="Permanently delete employee">
+                                <Trash2 className="size-3.5" />
                               </button>
                             </>
                           )}
@@ -607,6 +688,16 @@ export function EmployeeManager() {
                                       : emp.active
                                         ? <UserX className="size-3.5" />
                                         : <UserCheck className="size-3.5" />}
+                                  </button>
+
+                                  {/* Delete */}
+                                  <button
+                                    onClick={() => setDeleteTarget(emp)}
+                                    className="inline-flex size-8 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-colors hover:bg-destructive hover:text-white"
+                                    aria-label={`Delete ${emp.full_name}`}
+                                    title="Permanently delete employee"
+                                  >
+                                    <Trash2 className="size-3.5" />
                                   </button>
                                 </>
                               )}
