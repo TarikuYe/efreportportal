@@ -27,6 +27,7 @@ const ROUTING_DICTIONARY: Record<string, { label: string; href: string; icon: an
 export function SiteHeader() {
   const [user, setUser] = useState<any>(null)
   const [role, setRole] = useState<string>('engineer')
+  const [displayName, setDisplayName] = useState<string>('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
 
@@ -39,16 +40,18 @@ export function SiteHeader() {
         setUser(user)
         const { data: employee } = await supabase
           .from('employees')
-          .select('role')
+          .select('role, full_name')
           .eq('id', user.id)
           .maybeSingle()
         
         if (employee) {
           setRole(employee.role)
+          setDisplayName(employee.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || '')
         } else {
           if (user.email?.toLowerCase() === 'dgm@efae.com') {
             setRole('dgm')
           }
+          setDisplayName(user.user_metadata?.full_name || user.email?.split('@')[0] || '')
         }
       }
     }
@@ -60,15 +63,21 @@ export function SiteHeader() {
         setUser(session.user)
         supabase
           .from('employees')
-          .select('role')
+          .select('role, full_name')
           .eq('id', session.user.id)
           .maybeSingle()
           .then(({ data: employee }) => {
-            if (employee) setRole(employee.role)
+            if (employee) {
+              setRole(employee.role)
+              setDisplayName(employee.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '')
+            } else {
+              setDisplayName(session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '')
+            }
           })
       } else {
         setUser(null)
         setRole('engineer')
+        setDisplayName('')
       }
     })
 
@@ -98,9 +107,9 @@ export function SiteHeader() {
     }
   }
 
-  const getInitials = (u: any) => {
-    const name = u?.user_metadata?.full_name || u?.email || '??'
-    return (name.split(' ').map((n: string) => n[0]).join('').toUpperCase() + '??').substring(0, 2)
+  const getInitials = (name: string) => {
+    const n = name || '??'
+    return (n.split(' ').map((w: string) => w[0]).join('').toUpperCase() + '??').substring(0, 2)
   }
 
   const isLinkActive = (href: string) => {
@@ -156,7 +165,7 @@ export function SiteHeader() {
               <span className="h-5 w-px bg-border" />
               <div className="flex flex-col items-end">
                 <span className="max-w-[140px] truncate text-xs font-semibold text-foreground">
-                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                  {displayName}
                 </span>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase mt-0.5 ${getRoleBadgeClass(role)}`}>
                   {role}
@@ -229,11 +238,11 @@ export function SiteHeader() {
 
               <div className="relative flex items-center gap-3">
                 <div className={`flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br ${getRoleGradient(role)} shadow-lg text-white font-bold text-base shrink-0 ring-2 ring-white/20`}>
-                  {getInitials(user)}
+                  {getInitials(displayName)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm text-white truncate leading-tight">
-                    {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                    {displayName}
                   </div>
                   <div className="text-xs text-white/60 truncate mt-0.5">{user.email}</div>
                   <span className="inline-block mt-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/15 text-white uppercase tracking-wider">
