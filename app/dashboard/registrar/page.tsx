@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { toast } from 'sonner'
@@ -52,7 +52,7 @@ const TAB_META: Record<RegistrarTab, { label: string; icon: React.ElementType }>
   employees: { label: 'Employees', icon: Users },
 }
 
-export default function RegistrarPage() {
+function RegistrarPageInner() {
   const router       = useRouter()
   const searchParams = useSearchParams()
 
@@ -1763,5 +1763,17 @@ export default function RegistrarPage() {
 
       </main>
     </div>
+  )
+}
+
+export default function RegistrarPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+    }>
+      <RegistrarPageInner />
+    </Suspense>
   )
 }
