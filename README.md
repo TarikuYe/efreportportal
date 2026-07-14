@@ -1,6 +1,4 @@
-# EF A&E Report Portal
-
-> **EF Architects and Engineers Consulting PLC** — Internal Management & Report Submission Portal
+# Report Portal
 
 A full-stack web application built with **Next.js 16**, **Supabase**, and **TypeScript** for managing project reports, employee timesheets, correspondence, contractor bonds, EOT claims, and performance evaluations.
 
@@ -379,4 +377,4 @@ Visit `http://localhost:3000`
 
 ---
 
-*© EF Architect & Engineering. Internal use only.*
+*© Internal use only.*
