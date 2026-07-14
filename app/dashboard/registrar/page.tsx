@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
-import { redirect } from 'next/navigation'
 import { toast } from 'sonner'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
@@ -53,7 +53,21 @@ const TAB_META: Record<RegistrarTab, { label: string; icon: React.ElementType }>
 }
 
 export default function RegistrarPage() {
-  const [activeTab, setActiveTab] = useState<RegistrarTab>('correspondence')
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+
+  // Initialise tab from ?tab= query param, falling back to 'correspondence'
+  const paramTab = searchParams.get('tab') as RegistrarTab | null
+  const initialTab: RegistrarTab =
+    paramTab && Object.keys(TAB_META).includes(paramTab) ? paramTab : 'correspondence'
+
+  const [activeTab, setActiveTab] = useState<RegistrarTab>(initialTab)
+
+  // Keep URL in sync whenever the tab changes
+  function switchTab(tab: RegistrarTab) {
+    setActiveTab(tab)
+    router.replace(`/dashboard/registrar?tab=${tab}`, { scroll: false })
+  }
 
   // Core Data Queries
   const { data: userData, error: userError } = useSWR('/api/auth/session', () =>
@@ -628,7 +642,7 @@ export default function RegistrarPage() {
                 <button
                   key={tab}
                   onClick={() => {
-                    setActiveTab(tab)
+                    switchTab(tab)
                     clearCorrespondenceForm()
                     clearBondForm()
                     clearEotForm()
