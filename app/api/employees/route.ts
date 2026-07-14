@@ -261,27 +261,64 @@ export async function DELETE(request: Request) {
 
     const admin = createAdminClient()
 
-    // Remove employee profile row first (FK cascade will clean up assignments)
+    // ── 1. Remove project assignments (FK may not have ON DELETE CASCADE) ──
+    const { error: assignErr } = await admin
+      .from('employee_project_assignments')
+      .delete()
+      .eq('employee_id', id)
+    if (assignErr) console.log('[employees] DELETE step1 assignments:', assignErr.message)
+
+    // ── 2. Remove review records that reference this employee ──
+    const { error: reviewErr } = await admin
+      .from('daily_work_log_reviews')
+      .delete()
+      .eq('reviewed_by', id)
+    if (reviewErr) console.log('[employees] DELETE step2 reviews:', reviewErr.message)
+
+    // ── 3. Remove performance evaluations ──
+    const { error: evalErr } = await admin
+      .from('performance_evaluations')
+      .delete()
+      .eq('employee_id', id)
+    if (evalErr) console.log('[employees] DELETE step3 evaluations:', evalErr.message)
+
+    // ── 4. Remove daily work logs ──
+    // Note: lock_submitted_tasks trigger uses SECURITY DEFINER and fires even for
+    // service-role. We must drop the trigger temporarily or use a bypass function.
+    // Workaround: use a raw RPC call that runs as postgres superuser, or
+    // accept that logs may remain and skip this step — the employees row delete
+    // is what matters for access removal.
+    const { error: logsErr } = await admin
+      .from('daily_work_logs')
+      .delete()
+      .eq('employee_id', id)
+    if (logsErr) {
+      // Trigger blocks deletion — this is expected if lock_submitted_tasks is active.
+      // Log it but continue; the auth user will be removed so access is revoked.
+      console.log('[employees] DELETE step4 logs (trigger may block):', logsErr.message)
+    }
+
+    // ── 5. Delete the employees profile row ──
     const { error: profileError } = await admin
       .from('employees')
       .delete()
       .eq('id', id)
 
     if (profileError) {
-      console.log('[employees] DELETE profile error:', profileError.message)
-      return NextResponse.json({ error: 'Failed to delete employee profile.' }, { status: 500 })
+      console.log('[employees] DELETE step5 profile error:', profileError.message, profileError.code, profileError.details)
+      return NextResponse.json({ error: `Failed to delete employee profile: ${profileError.message}` }, { status: 500 })
     }
 
-    // Remove the Supabase Auth user
+    // ── 6. Delete the Supabase Auth user ──
     const { error: authError } = await admin.auth.admin.deleteUser(id)
     if (authError) {
-      console.log('[employees] DELETE auth user error:', authError.message)
-      // Profile is already gone; auth cleanup failure is non-fatal but worth logging
+      console.log('[employees] DELETE step6 auth user error:', authError.message)
     }
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.log('[employees] DELETE unexpected:', err instanceof Error ? err.message : String(err))
-    return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.log('[employees] DELETE unexpected:', msg)
+    return NextResponse.json({ error: `Unexpected server error: ${msg}` }, { status: 500 })
   }
 }
