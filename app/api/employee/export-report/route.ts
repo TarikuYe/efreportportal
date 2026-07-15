@@ -179,7 +179,7 @@ export async function GET(_req: Request) {
 
   // Flatten the most-recent review onto each log row (same logic as the
   // GET /api/daily-work-logs handler so both views are consistent).
-  const rows = (logs ?? []).map((log: any) => {
+  const allRows = (logs ?? []).map((log: any) => {
     const reviews: any[] = log.daily_work_log_reviews ?? []
     const latestReview = reviews.sort(
       (a: any, b: any) =>
@@ -193,6 +193,25 @@ export async function GET(_req: Request) {
       reviewed_at:     latestReview?.reviewed_at     ?? null,
     }
   })
+
+  // ── Deduplicate resubmission pairs ───────────────────────────────────────
+  // When an employee corrects a returned log, the DB keeps the old Returned
+  // row AND gains a new row for the same date. We must suppress the old
+  // Returned row so each date only shows the most-recent meaningful entry.
+  //
+  // Rule (mirrors employee-workspace.tsx):
+  //   For a given log_date, if ANY non-Returned row exists, hide all Returned
+  //   rows for that date — they have been superseded by the correction.
+  const datesWithNonReturned = new Set<string>(
+    allRows
+      .filter((r: any) => r.approval_status !== 'Returned')
+      .map((r: any) => r.log_date as string),
+  )
+
+  const rows = allRows.filter(
+    (r: any) =>
+      !(r.approval_status === 'Returned' && datesWithNonReturned.has(r.log_date)),
+  )
 
   // ── 4. Build workbook ─────────────────────────────────────────────────────
   const wb = new ExcelJS.Workbook()
@@ -435,7 +454,7 @@ export async function GET(_req: Request) {
   measureColumnWidths(ws, DATA_START_ROW, lastDataRow)
 
   // ── 5. Stream buffer as downloadable .xlsx attachment ─────────────────────
-  const buffer     = await wb.xlsx.writeBuffer() as Buffer
+  const buffer     = Buffer.from(await wb.xlsx.writeBuffer())
   const fileDate   = todayFileStamp()
   const safeSlug   = employee.full_name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30)
   const filename   = `My_Work_Log_Report_${safeSlug}_${fileDate}.xlsx`
