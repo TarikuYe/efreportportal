@@ -213,3 +213,41 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 })
   }
 }
+
+// DELETE /api/eot
+export async function DELETE(request: Request) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+    }
+    const hasAccess = await checkAdminOrDgm(user.id)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Admin or DGM access required.' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const id = Number(body.id)
+    if (!id) {
+      return NextResponse.json({ error: 'EOT record id is required.' }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+    const { error } = await admin
+      .from('eot_tracker')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('[eot] DELETE error:', error.message)
+      return NextResponse.json({ error: 'Failed to delete EOT record: ' + error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('[eot] DELETE unexpected:', err)
+    return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 })
+  }
+}

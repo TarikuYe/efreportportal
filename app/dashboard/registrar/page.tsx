@@ -38,6 +38,7 @@ import {
   Users,
   FileSpreadsheet,
   BookMarked,
+  AlertTriangle,
 } from 'lucide-react'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -119,6 +120,45 @@ function RegistrarPageInner() {
 
   // Common editing state
   const [editId, setEditId] = useState<string | number | null>(null)
+
+  // ── Delete confirmation state (shared across all tabs) ──
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string | number; label: string; sublabel?: string; tab: RegistrarTab } | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const endpointMap: Record<RegistrarTab, string> = {
+      correspondence: '/api/correspondence',
+      bonds: '/api/bonds',
+      eot: '/api/eot',
+      evaluations: '/api/evaluations',
+      employees: '/api/employees',
+    }
+    const mutateMap: Record<RegistrarTab, () => void> = {
+      correspondence: mutateCorr,
+      bonds: mutateBonds,
+      eot: mutateEot,
+      evaluations: mutateEvals,
+      employees: () => {},
+    }
+    try {
+      const res = await fetch(endpointMap[deleteTarget.tab], {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: deleteTarget.id }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Delete failed.')
+      toast.success('Record deleted successfully')
+      setDeleteTarget(null)
+      mutateMap[deleteTarget.tab]()
+    } catch (err: any) {
+      toast.error('Delete failed', { description: err.message })
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   // 1. Correspondence Form State
   const [corrRef, setCorrRef] = useState('')
@@ -617,6 +657,48 @@ function RegistrarPageInner() {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-secondary/30 to-background">
       <SiteHeader />
+      {/* ── Delete confirmation dialog ── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-destructive/30 bg-card p-6 shadow-xl">
+            <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <AlertTriangle className="size-6" />
+            </div>
+            <h3 className="font-display text-lg font-bold text-foreground">Delete this record?</h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              You are about to permanently delete the following entry.
+            </p>
+            <div className="mt-3 rounded-lg border border-border bg-secondary/40 px-4 py-3">
+              <div className="font-medium text-sm text-foreground">{deleteTarget.label}</div>
+              {deleteTarget.sublabel && (
+                <div className="mt-0.5 text-xs text-muted-foreground">{deleteTarget.sublabel}</div>
+              )}
+            </div>
+            <div className="mt-3 rounded-lg bg-destructive/8 px-3 py-2.5 text-xs text-destructive">
+              <strong>This action cannot be undone.</strong> The record will be permanently removed from the database.
+            </div>
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+              >
+                Cancel, keep record
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting
+                  ? <><Loader2 className="size-4 animate-spin" /> Deleting…</>
+                  : <><Trash2 className="size-4" /> Yes, delete permanently</>
+                }
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-4 py-6 sm:py-8 sm:px-6">
         
         {/* Title Block */}
@@ -1355,6 +1437,9 @@ function RegistrarPageInner() {
                                 <button onClick={() => editCorrespondence(c)} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
                                   <Edit2 className="size-3.5" />
                                 </button>
+                                <button onClick={() => setDeleteTarget({ id: c.id, label: c.letter_ref_no, sublabel: c.subject, tab: 'correspondence' })} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-all hover:bg-destructive hover:text-white">
+                                  <Trash2 className="size-3.5" />
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -1402,11 +1487,15 @@ function RegistrarPageInner() {
                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${c.status === 'Closed' ? 'bg-emerald-500/10 text-emerald-600' : c.status === 'Overdue' ? 'bg-rose-500/10 text-rose-600' : c.status === 'Open' ? 'bg-amber-500/10 text-amber-600' : 'bg-secondary text-muted-foreground'}`}>{c.status}</span>
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <button onClick={() => editCorrespondence(c)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
-                                      <Edit2 className="size-3.5" />
-                                    </button>
-                                  </TableCell>
-                                </TableRow>
+                                    <div className="flex items-center justify-end gap-1">
+                                      <button onClick={() => editCorrespondence(c)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                        <Edit2 className="size-3.5" />
+                                      </button>
+                                      <button onClick={() => setDeleteTarget({ id: c.id, label: c.letter_ref_no, sublabel: c.subject, tab: 'correspondence' })} className="inline-flex size-7 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-all hover:bg-destructive hover:text-white">
+                                        <Trash2 className="size-3.5" />
+                                      </button>
+                                    </div>
+                                  </TableCell>                                </TableRow>
                               ))}
                             </TableBody>
                           </Table>
@@ -1476,6 +1565,9 @@ function RegistrarPageInner() {
                                 <button onClick={() => editBond(b)} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
                                   <Edit2 className="size-3.5" />
                                 </button>
+                                <button onClick={() => setDeleteTarget({ id: b.id, label: b.project_name, sublabel: `${b.bond_type} · ${b.contractor_name}`, tab: 'bonds' })} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-all hover:bg-destructive hover:text-white">
+                                  <Trash2 className="size-3.5" />
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -1515,9 +1607,14 @@ function RegistrarPageInner() {
                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${b.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600' : b.status === 'Expired' ? 'bg-rose-500/10 text-rose-600' : 'bg-secondary text-muted-foreground'}`}>{b.status}</span>
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <button onClick={() => editBond(b)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
-                                      <Edit2 className="size-3.5" />
-                                    </button>
+                                    <div className="flex items-center justify-end gap-1">
+                                      <button onClick={() => editBond(b)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                        <Edit2 className="size-3.5" />
+                                      </button>
+                                      <button onClick={() => setDeleteTarget({ id: b.id, label: b.project_name, sublabel: `${b.bond_type} · ${b.contractor_name}`, tab: 'bonds' })} className="inline-flex size-7 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-all hover:bg-destructive hover:text-white">
+                                        <Trash2 className="size-3.5" />
+                                      </button>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -1585,6 +1682,9 @@ function RegistrarPageInner() {
                                 <button onClick={() => editEot(e)} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
                                   <Edit2 className="size-3.5" />
                                 </button>
+                                <button onClick={() => setDeleteTarget({ id: e.id, label: e.project_name, sublabel: `EOT #${e.eot_number} · ${e.contractor_name}`, tab: 'eot' })} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-all hover:bg-destructive hover:text-white">
+                                  <Trash2 className="size-3.5" />
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -1620,9 +1720,14 @@ function RegistrarPageInner() {
                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${getEotBadgeColor(e.status)}`}>{e.status}</span>
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <button onClick={() => editEot(e)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
-                                      <Edit2 className="size-3.5" />
-                                    </button>
+                                    <div className="flex items-center justify-end gap-1">
+                                      <button onClick={() => editEot(e)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                        <Edit2 className="size-3.5" />
+                                      </button>
+                                      <button onClick={() => setDeleteTarget({ id: e.id, label: e.project_name, sublabel: `EOT #${e.eot_number} · ${e.contractor_name}`, tab: 'eot' })} className="inline-flex size-7 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-all hover:bg-destructive hover:text-white">
+                                        <Trash2 className="size-3.5" />
+                                      </button>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -1698,6 +1803,9 @@ function RegistrarPageInner() {
                                   <button onClick={() => editEvaluation(e)} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
                                     <Edit2 className="size-3.5" />
                                   </button>
+                                  <button onClick={() => setDeleteTarget({ id: e.id, label: (e.employees ?? {}).full_name ?? '—', sublabel: `${e.evaluation_period_start} – ${e.evaluation_period_end}`, tab: 'evaluations' })} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-all hover:bg-destructive hover:text-white">
+                                    <Trash2 className="size-3.5" />
+                                  </button>
                                 </div>
                               </div>
                             )
@@ -1740,9 +1848,14 @@ function RegistrarPageInner() {
                                       }`}>{e.performance_level}</span>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      <button onClick={() => editEvaluation(e)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
-                                        <Edit2 className="size-3.5" />
-                                      </button>
+                                      <div className="flex items-center justify-end gap-1">
+                                        <button onClick={() => editEvaluation(e)} className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
+                                          <Edit2 className="size-3.5" />
+                                        </button>
+                                        <button onClick={() => setDeleteTarget({ id: e.id, label: (e.employees ?? {}).full_name ?? '—', sublabel: `${e.evaluation_period_start} – ${e.evaluation_period_end}`, tab: 'evaluations' })} className="inline-flex size-7 items-center justify-center rounded-md border border-destructive/40 text-destructive/70 transition-all hover:bg-destructive hover:text-white">
+                                          <Trash2 className="size-3.5" />
+                                        </button>
+                                      </div>
                                     </TableCell>
                                   </TableRow>
                                 )
