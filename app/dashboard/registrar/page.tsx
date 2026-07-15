@@ -1495,7 +1495,8 @@ function RegistrarPageInner() {
                                         <Trash2 className="size-3.5" />
                                       </button>
                                     </div>
-                                  </TableCell>                                </TableRow>
+                                  </TableCell>
+                                </TableRow>
                               ))}
                             </TableBody>
                           </Table>

@@ -71,7 +71,9 @@ export async function GET(request: Request) {
       if (currentEmp.role !== 'admin' && currentEmp.role !== 'dgm') {
         return NextResponse.json({ error: 'Permission denied.' }, { status: 403 })
       }
-      // Fetch logs that have no approved review yet (or whose latest review is Pending/Returned)
+      // Fetch all logs with their reviews so we can filter to only those whose
+      // latest review is NOT 'Approved'.  We do this in-process because Supabase
+      // PostgREST does not support LATERAL / DISTINCT ON filtering directly.
       query = admin
         .from('daily_work_logs')
         .select(
@@ -124,6 +126,21 @@ export async function GET(request: Request) {
         reviewed_at: latestReview?.reviewed_at ?? null,
       }
     })
+
+    // For the pending queue, only show logs whose latest review status is
+    // 'Pending' (i.e. the DGM has not yet acted on them, OR the employee has
+    // resubmitted a corrected version after a Return).
+    //
+    // 'Returned' rows are excluded — the DGM already processed them. They will
+    // disappear from the queue and only reappear if the employee submits a new
+    // corrected row (which will have status 'Pending' with no review record).
+    // 'Approved' rows are excluded — nothing left to action.
+    if (pendingOnly) {
+      const queueLogs = enrichedLogs.filter(
+        (log: any) => log.approval_status === 'Pending',
+      )
+      return NextResponse.json({ logs: queueLogs })
+    }
 
     return NextResponse.json({ logs: enrichedLogs })
   } catch (err) {
@@ -204,37 +221,44 @@ export async function POST(request: Request) {
       }
 
       // ── DUPLICATE CHECK ──────────────────────────────────────────────────
-      // An employee cannot insert a second log for the same date+task combo.
-      // The DB has no unique constraint per-date, but we can still catch
-      // accidental duplicate submits at the API layer.
-      const { data: existing } = await admin
-        .from('daily_work_logs')
-        .select('id')
-        .eq('employee_id', currentEmp.id)
-        .eq('log_date', logDate)
-        .limit(1)
+      // An employee cannot insert a second log for the same date+task combo,
+      // UNLESS this is a correction of a previously-returned row.  The client
+      // passes `returned_log_id` (the original DB row id) when resubmitting a
+      // returned entry — in that case we skip the duplicate guard entirely for
+      // this date so the corrected content can be inserted as a new row.
+      const returnedLogId: number | null =
+        typeof log.returned_log_id === 'number' ? log.returned_log_id : null
 
-      // Only block if this specific log isn't a legitimate "split task" for same day.
-      // We allow multiple rows per day (split tasks), but we flag if the content is
-      // identical (exact text match) which is almost certainly a double-submit.
-      if (existing && existing.length > 0) {
-        const { data: duplicate } = await admin
+      if (!returnedLogId) {
+        const { data: existing } = await admin
           .from('daily_work_logs')
           .select('id')
           .eq('employee_id', currentEmp.id)
           .eq('log_date', logDate)
-          .eq('assigned_tasks', assignedTasks)
-          .eq('actual_work_done', actualWorkDone)
           .limit(1)
 
-        if (duplicate && duplicate.length > 0) {
-          return NextResponse.json(
-            {
-              error: `Duplicate log detected for ${logDate}. A log with identical task content already exists and cannot be overwritten.`,
-              code: 'LOG_DUPLICATE',
-            },
-            { status: 409 },
-          )
+        // Only block if this specific log isn't a legitimate "split task" for same day.
+        // We allow multiple rows per day (split tasks), but we flag if the content is
+        // identical (exact text match) which is almost certainly a double-submit.
+        if (existing && existing.length > 0) {
+          const { data: duplicate } = await admin
+            .from('daily_work_logs')
+            .select('id')
+            .eq('employee_id', currentEmp.id)
+            .eq('log_date', logDate)
+            .eq('assigned_tasks', assignedTasks)
+            .eq('actual_work_done', actualWorkDone)
+            .limit(1)
+
+          if (duplicate && duplicate.length > 0) {
+            return NextResponse.json(
+              {
+                error: `Duplicate log detected for ${logDate}. A log with identical task content already exists and cannot be overwritten.`,
+                code: 'LOG_DUPLICATE',
+              },
+              { status: 409 },
+            )
+          }
         }
       }
 
@@ -256,6 +280,7 @@ export async function POST(request: Request) {
         office_leave_time: log.office_leave_time || null,
         // approval_status intentionally NOT set here — it starts as 'Pending'
         // and is managed exclusively via the /api/daily-work-logs/review route.
+        // returned_log_id is a client-side hint only — never persisted.
       })
     }
 

@@ -257,12 +257,17 @@ interface TimesheetRow {
 }
 
 /**
- * Returns true when a row is already persisted (has a numeric DB id).
- * Persisted rows are immutable — neither the employee nor the server
- * allows any mutation once saved.
+ * Returns true when a row is persisted (has a numeric DB id) AND has NOT been
+ * returned by the DGM for correction.
+ *
+ * A row with approval_status === 'Returned' is unlocked so the employee can
+ * edit and resubmit it. The original DB row remains immutable — on resubmit
+ * the corrected content is inserted as a brand-new row for the same date.
  */
 function isRowLocked(row: TimesheetRow): boolean {
-  return typeof row.id === 'number'
+  if (typeof row.id !== 'number') return false          // unsaved temp rows are never locked
+  if (row.approval_status === 'Returned') return false  // returned rows are open for correction
+  return true
 }
 
 // ─────────────────────────────────────────
@@ -376,16 +381,50 @@ export function EmployeeWorkspace({
     const mappedRows: TimesheetRow[] = []
 
     // Populate all 7 days of the week.
-    // If a day has logs in the database, add them (locked).
-    // Otherwise seed a row — restoring any draft the user previously typed.
+    // Rules for each day:
+    //   1. No DB rows yet → seed one empty/draft row (isNew).
+    //   2. One DB row, status Returned → show it as editable (the employee corrects in-place).
+    //      Do NOT add a second blank row — the returned row IS the draft slot.
+    //   3. One DB row, any other status → show it locked (Pending/Approved).
+    //   4. Multiple DB rows for the same date → a resubmission already happened.
+    //      Hide any Returned rows that have been superseded by a newer Pending/Approved row
+    //      for the same date, to avoid showing the old returned row alongside the new one.
     days.forEach(day => {
       const dateStr = formatDateString(day)
       const dayLogs = dbLogs.filter((l: any) => l.log_date === dateStr)
       const isSaturday = day.getDay() === 6
       const draft = drafts[dateStr] // may be undefined if no draft exists
 
-      if (dayLogs.length > 0) {
+      if (dayLogs.length === 0) {
+        // No DB rows yet — seed an empty row, restoring any localStorage draft.
+        mappedRows.push({
+          log_date: dateStr,
+          assigned_tasks: draft?.assigned_tasks ?? '',
+          actual_work_done: draft?.actual_work_done ?? '',
+          hours_worked: draft?.hours_worked ?? (isSaturday ? 4 : 8),
+          actual_working_hour: draft?.actual_working_hour ?? (isSaturday ? 4 : 8),
+          completion_percentage: draft?.completion_percentage ?? 0.80,
+          done_at_home: draft?.done_at_home ?? false,
+          remark: draft?.remark ?? '',
+          office_entrance_time: draft?.office_entrance_time ?? '08:30',
+          office_leave_time: draft?.office_leave_time ?? (isSaturday ? '12:30' : '17:30'),
+          approval_status: 'Pending',
+          isNew: true,
+        })
+      } else {
+        // When multiple rows exist for a date (resubmission scenario), check whether
+        // a non-Returned row is present.  If so, suppress the Returned row(s) so the
+        // employee only sees the corrected/new submission, not the old returned one.
+        const hasNonReturnedRow = dayLogs.some(
+          (l: any) => (l.approval_status ?? 'Pending') !== 'Returned',
+        )
+
         dayLogs.forEach((log: any) => {
+          const status: 'Pending' | 'Approved' | 'Returned' = log.approval_status ?? 'Pending'
+
+          // Skip old Returned rows when a newer non-Returned row exists for the same date.
+          if (status === 'Returned' && hasNonReturnedRow) return
+
           mappedRows.push({
             id: log.id,
             log_date: log.log_date,
@@ -400,28 +439,11 @@ export function EmployeeWorkspace({
             office_leave_time: log.office_leave_time ? log.office_leave_time.substring(0, 5) : (isSaturday ? '12:30' : '17:30'),
             // approval_status and head_comments come from the latest review record
             // (flattened by the API) — never from a mutation of the original row
-            approval_status: log.approval_status ?? 'Pending',
+            approval_status: status,
             head_comments: log.head_comments ?? null,
             reviewed_at: log.reviewed_at ?? null,
-            isNew: false, // persisted rows are locked
+            isNew: false,
           })
-        })
-      } else {
-        // Seed an empty row, overlaying any draft content so the user's
-        // in-progress work is restored after a refresh.
-        mappedRows.push({
-          log_date: dateStr,
-          assigned_tasks: draft?.assigned_tasks ?? '',
-          actual_work_done: draft?.actual_work_done ?? '',
-          hours_worked: draft?.hours_worked ?? (isSaturday ? 4 : 8),
-          actual_working_hour: draft?.actual_working_hour ?? (isSaturday ? 4 : 8),
-          completion_percentage: draft?.completion_percentage ?? 0.80,
-          done_at_home: draft?.done_at_home ?? false,
-          remark: draft?.remark ?? '',
-          office_entrance_time: draft?.office_entrance_time ?? '08:30',
-          office_leave_time: draft?.office_leave_time ?? (isSaturday ? '12:30' : '17:30'),
-          approval_status: 'Pending',
-          isNew: true,
         })
       }
     })
@@ -578,7 +600,11 @@ export function EmployeeWorkspace({
 
     setSaving(true)
     try {
-      // Strip any temporary string ids — only plain INSERT records, no ids included
+      // Strip any ids — only plain INSERT records are sent.
+      // For rows that were returned by the DGM (approval_status === 'Returned'),
+      // we pass the original DB id as `returned_log_id` so the API can skip the
+      // duplicate-content guard for that date (the employee is correcting the
+      // previously-returned entry).
       const logsToInsert = newRows.map(row => ({
         log_date: row.log_date,
         assigned_tasks: row.assigned_tasks,
@@ -590,7 +616,12 @@ export function EmployeeWorkspace({
         remark: row.remark || null,
         office_entrance_time: row.office_entrance_time ? `${row.office_entrance_time}:00` : null,
         office_leave_time: row.office_leave_time ? `${row.office_leave_time}:00` : null,
-        // NOTE: no `id` field — this guarantees the API receives INSERT-only records
+        // NOTE: no `id` field — this guarantees the API receives INSERT-only records.
+        // `returned_log_id` tells the API this is a correction of a returned row so
+        // the same-date duplicate guard is skipped for that specific original row.
+        ...(row.approval_status === 'Returned' && typeof row.id === 'number'
+          ? { returned_log_id: row.id }
+          : {}),
       }))
 
       const res = await fetch('/api/daily-work-logs', {
@@ -1003,6 +1034,12 @@ export function EmployeeWorkspace({
                                 <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                                   <Lock className="size-2.5" />
                                   Submitted · Read-only
+                                </div>
+                              )}
+                              {isReturned && !locked && typeof row.id === 'number' && (
+                                <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-rose-100 dark:bg-rose-950/40 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:text-rose-400">
+                                  <AlertTriangle className="size-2.5" />
+                                  Returned · Edit &amp; resubmit
                                 </div>
                               )}
                               {hasComments && (

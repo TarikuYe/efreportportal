@@ -42,8 +42,13 @@ export default function DGMAnalyticsPage() {
     refreshInterval: 10000 // refresh every 10 seconds for real-time streaming
   })
 
-  // SWR query for all pending or under review daily logs
-  const { data: pendingLogsData, mutate: mutatePendingLogs } = useSWR('/api/daily-work-logs?pending=true', fetcher)
+  // SWR query for all pending or under review daily logs — poll every 10 s so
+  // employee resubmissions appear in the DGM queue without a manual page reload.
+  const { data: pendingLogsData, mutate: mutatePendingLogs } = useSWR(
+    '/api/daily-work-logs?pending=true',
+    fetcher,
+    { refreshInterval: 10000 },
+  )
   const pendingLogs = pendingLogsData?.logs ?? []
 
   const metrics = data?.metrics ?? {
